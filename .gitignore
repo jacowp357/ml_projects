@@ -1,0 +1,17 @@
+###################
+# Compiled source #
+###################
+
+*.blg
+*.bbl
+*.pyc
+*.o
+*.exe
+*.aux
+*.out
+*.toc
+*.dll
+*.csv
+*.mat
+*.zip
+*.DS_Store
