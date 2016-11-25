@@ -13,17 +13,13 @@ class LinearRegression(object):
     """ Linear Regression class.
     """
     def __init__(self, input, n_in, n_out):
-        # initialize the weights to be all zeros #
         self.W = theano.shared(value=np.zeros((n_in, n_out), dtype=theano.config.floatX), name='W', borrow=True)
         self.b = theano.shared(value=np.zeros((n_out,), dtype=theano.config.floatX), name='b', borrow=True)
-        self.p_y_given_x = T.dot(input, self.W) + self.b
-        # can be used in multi-variate cases #
-        self.y_pred = self.p_y_given_x[:, 0:n_out]
+        self.y_pred = T.dot(input, self.W) + self.b
         self.params = [self.W, self.b]
         self.input = input
 
     def mean_squared_errors(self, y):
-        # return mean squared error #
         return T.mean((self.y_pred - y) ** 2)
 
 

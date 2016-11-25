@@ -45,7 +45,8 @@ def load(fname, test=None):
 
 
 def convert_data_theano(dataset):
-    train_set, valid_set, test_set = dataset[0], dataset[1], dataset[2]
+    # train_set, valid_set, test_set = dataset[0], dataset[1], dataset[2]
+    train_set, valid_set = dataset[0], dataset[1]
     assert (train_set[0].shape)[1] == (valid_set[0].shape)[1], "Number of features for train, val do not match: {} and {}.".format(train_set.shape[1], valid_set.shape[1])
     num_features, num_output = (train_set[0].shape)[1], (train_set[1].shape)[1]
 
@@ -58,8 +59,9 @@ def convert_data_theano(dataset):
 
     train_set_x, train_set_y = shared_dataset(train_set)
     valid_set_x, valid_set_y = shared_dataset(valid_set)
-    test_set_x, test_set_y = shared_dataset(test_set)
-    rval = [(train_set_x, train_set_y), (valid_set_x, valid_set_y), (test_set_x, test_set_y)]
+    # test_set_x, test_set_y = shared_dataset(test_set)
+    # rval = [(train_set_x, train_set_y), (valid_set_x, valid_set_y), (test_set_x, test_set_y)]
+    rval = [(train_set_x, train_set_y), (valid_set_x, valid_set_y)]
     return rval, num_features, num_output
 
 
@@ -75,30 +77,27 @@ def plot_sample(x, pred_y, act_y, axis):
 class MLP(object):
     # Multi-Layer Perceptron consisting of a hidden layer and a fully connected #
     # linear regression layer #
-    def __init__(self, rng, input, n_in, n_hidden, n_out):
+    def __init__(self, rng, input, n_in, n_out, n_hidden):
         # one hidden layer with sigmoid activations, connected to the final linear regression layer #
-        self.hiddenLayer = mlp.HiddenLayer(rng=rng, input=input, n_in=n_in, n_out=n_hidden, activation=T.tanh)
-        # the logistic regression layer gets as input the hidden units of the linear regression layer #
+        self.hiddenLayer = mlp.HiddenLayer(rng=rng, input=input, n_in=n_in, n_out=n_hidden, activation=T.nnet.sigmoid)  # T.tanh, T.nnet.sigmoid, T.nnet.relu
         self.linRegressionLayer = mlp.LinearRegression(input=self.hiddenLayer.output, n_in=n_hidden, n_out=n_out)
         # two norms along with sum of squares loss function (output of linear regression layer) #
-        self.L1 = abs(self.hiddenLayer.W).sum() + abs(self.linRegressionLayer.W).sum()
-        self.L2_sqr = (self.hiddenLayer.W ** 2).sum() + (self.linRegressionLayer.W ** 2).sum()
+        self.L1 = abs(self.hiddenLayer.W ** 2).sum() + abs(self.linRegressionLayer.W).sum()
+        self.L2 = (self.hiddenLayer.W ** 2).sum() + (self.linRegressionLayer.W ** 2).sum()
         self.mean_squared_errors = self.linRegressionLayer.mean_squared_errors
         self.y_pred = self.linRegressionLayer.y_pred
         self.params = self.hiddenLayer.params + self.linRegressionLayer.params
         self.input = input
+        self.W = self.linRegressionLayer.W
 
 
-def train_mlp_model(dataset, learning_rate=None, L1_reg=None, L2_reg=None, n_epochs=None, batch_size=None, n_hidden=None):
+def train_mlp_model(dataset, learning_rate=0, L1_reg=0, L2_reg=0, n_hidden=0, max_iter=0):
     # shared Theano format for data #
     datasets, num_features, num_outputs = convert_data_theano(dataset)
     train_set_x, train_set_y = datasets[0]
-    valid_set_x, valid_set_y = datasets[1]
-    test_set_x, test_set_y = datasets[2]
+    cros_set_x, cros_set_y = datasets[1]
+    # test_set_x, test_set_y = datasets[2]
     # compute number of mini-batches #
-    n_train_batches = train_set_x.get_value(borrow=True).shape[0] // batch_size
-    n_valid_batches = valid_set_x.get_value(borrow=True).shape[0] // batch_size
-    n_test_batches = test_set_x.get_value(borrow=True).shape[0] // batch_size
 
     print('build the model...')
     # mini-batch index #
@@ -110,72 +109,53 @@ def train_mlp_model(dataset, learning_rate=None, L1_reg=None, L2_reg=None, n_epo
     # random state for weight initialisation #
     rng = np.random.RandomState(1234)
     # initialise multi-layer perceptron #
-    regressor = MLP(rng=rng, input=x, n_in=num_features, n_hidden=n_hidden, n_out=num_outputs)
+    regressor = MLP(rng=rng, input=x, n_in=num_features, n_out=num_outputs, n_hidden=n_hidden)
     # compute the cost function #
-    cost = regressor.mean_squared_errors(y) + L1_reg * regressor.L1 + L2_reg * regressor.L2_sqr
-    # Theano function that computes the MSE on a minibatch #
-    validate_model = theano.function(inputs=[index], outputs=regressor.mean_squared_errors(y), givens={x: valid_set_x[index * batch_size:(index + 1) * batch_size], y: valid_set_y[index * batch_size:(index + 1) * batch_size]})
-    test_model = theano.function(inputs=[index], outputs=regressor.mean_squared_errors(y), givens={x: test_set_x[index * batch_size:(index + 1) * batch_size], y: test_set_y[index * batch_size:(index + 1) * batch_size]})
+    cost = regressor.mean_squared_errors(y)
+    # theano function that computes the MSE on a minibatch #
+    validate_train_model = theano.function(inputs=[index], outputs=regressor.mean_squared_errors(y), givens={x: train_set_x, y: train_set_y}, on_unused_input='ignore')
+    validate_cross_model = theano.function(inputs=[index], outputs=regressor.mean_squared_errors(y), givens={x: cros_set_x, y: cros_set_y}, on_unused_input='ignore')
+    # validate_test_model = theano.function(inputs=[index], outputs=regressor.mean_squared_errors(y), givens={x: test_set_x, y: test_set_y}, on_unused_input='ignore')
     # compute the gradient of the cost function #
-    gparams = [T.grad(cost, param) for param in regressor.params]
+    gparams = T.grad(cost, wrt=regressor.W)
     # specify update of the model parameters as list of (variable, update_expression) pairs #
-    updates = [(param, param - learning_rate * gparam) for param, gparam in zip(regressor.params, gparams)]
+    updates = (regressor.W, regressor.W - learning_rate * gparams)
     # compiling a Theano function `train_model` that returns the cost and updates parameters #
-    train_model = theano.function(inputs=[index], outputs=cost, updates=updates, givens={x: train_set_x[index * batch_size:(index + 1) * batch_size], y: train_set_y[index * batch_size:(index + 1) * batch_size]})
+    train_model = theano.function(inputs=[index], outputs=cost, updates=[updates], givens={x: train_set_x, y: train_set_y}, on_unused_input='ignore')
 
     print('training the model...')
-    # early stopping parameters #
-    patience = 10                  # look at this many examples regardless #
-    patience_increase = 2          # wait this much longer when a new best is found #
-    improvement_threshold = 0.995  # a relative improvement of this much is considered significant #
-    validation_frequency = min(n_train_batches, patience // 2)
-    # go through this many minibatche before checking the network #
-    # on the validation set; in this case we check every epoch #
-    best_validation_loss = np.inf
-    best_iter = 0
-    test_score = 0.
+
     start_time = timeit.default_timer()
-    epoch = 0
-    done_looping = False
-    while (epoch < n_epochs) and (not done_looping):
-        epoch = epoch + 1
-        for minibatch_index in range(n_train_batches):
-            train_model(minibatch_index)
-            # iteration number #
-            iter = (epoch - 1) * n_train_batches + minibatch_index
-            # evaluate on validation set #
-            if (iter + 1) % validation_frequency == 0:
-                # compute zero-one loss on validation set #
-                validation_losses = [validate_model(i) for i in range(n_valid_batches)]
-                this_validation_loss = np.mean(validation_losses)
-                print("epoch {}, minibatch {}/{}, validation MSE {:.5f}".format(epoch, minibatch_index + 1, n_train_batches, np.sqrt(this_validation_loss) * 48))
-                # save the best model #
-                # pickle.dump(regressor, open("model.p", "wb"))
-                # predict(dataset)
-                # if best valid so far, improve patience and update the 'best' variables #
-                if this_validation_loss < best_validation_loss:
-                    if this_validation_loss < best_validation_loss * improvement_threshold:
-                        patience = max(patience, iter * patience_increase)
-                    best_validation_loss = this_validation_loss
-                    best_iter = iter
-                    test_losses = [test_model(i) for i in range(n_test_batches)]
-                    test_score = np.mean(test_losses)
-                    print(('epoch %i, minibatch %i/%i, test MSE of best model %f') % (epoch, minibatch_index + 1, n_train_batches, np.sqrt(test_score) * 48))
-                    # print(('epoch %i, minibatch %i/%i, test error of best model %f %%, learning rate: %f') % (epoch, minibatch_index + 1, n_train_batches, test_score * 100., learning_rate.get_value(borrow=True)))
-            if patience <= iter:
-                done_looping = True
-                break
-        # decay_learning_rate()
+    iterations = 0
+    tr_error = []
+    cv_error = []
+    # ts_error = []
+
+    while iterations < max_iter:
+        iterations += 1
+        train_model(0)
+        train_losses = np.sqrt(validate_train_model(0)) * 48
+        validation_losses = np.sqrt(validate_cross_model(0)) * 48
+        # test_losses = np.sqrt(validate_test_model(0)) * 48
+        tr_error.append(train_losses)
+        cv_error.append(validation_losses)
+        # ts_error.append(test_losses)
+        print("Iteration {}: MSE training {:.5f}, validation {:.5f}".format(iterations, train_losses, validation_losses))
+        # save the model #
+        pickle.dump((regressor, tr_error, cv_error), open("model.p", "wb"))
+        # predict(dataset)
+        # val_W = regressor.hiddenLayer.W.get_value()
+        # plot_activations(val_W)
     end_time = timeit.default_timer()
-    print(('Optimization complete. Best validation score of %f obtained at iteration %i') % (np.sqrt(best_validation_loss) * 48, best_iter + 1))
-    print(('The code for file ran for %.2fm' % ((end_time - start_time) / 60.)))
+    print(('The code ran for %.2fm' % ((end_time - start_time) / 60.)))
+    # do_plots(tr_error, cv_error, ts_error)
 
 
 def predict(data):
     # load the saved model
-    classifier = pickle.load(open("model.p", "rb"))
+    model = pickle.load(open("model.p", "rb"))[0]
     # compile a predictor function
-    predict_model_n = theano.function(inputs=[classifier.input], outputs=classifier.y_pred)
+    predict_model_n = theano.function(inputs=[model.input], outputs=model.y_pred)
 
     fig = plt.figure(figsize=(6, 6))
     fig.subplots_adjust(left=0, right=1, bottom=0, top=1, hspace=0.05, wspace=0.05)
@@ -188,46 +168,53 @@ def predict(data):
     # plt.show()
 
 
-def make_visual(layer_weights):
-    max_scale = layer_weights.max(axis=-1).max(axis=-1)[np.newaxis, np.newaxis]
-    min_scale = layer_weights.min(axis=-1).min(axis=-1)[np.newaxis, np.newaxis]
-    return (255 * (layer_weights - min_scale) / (max_scale - min_scale)).astype('uint8')
+def plot_activations(X):
+    X = X.T
+    example_width = int(np.round(np.sqrt(X.shape[1])))
+    m, n = X.shape
+    example_height = int(n / example_width)
+    display_rows = int(np.floor(np.sqrt(m)))
+    display_cols = int(np.ceil(m / display_rows))
+    print(example_width, m, n, example_height, display_rows, display_cols)
+
+    for i, w in enumerate(X):
+        plt.subplot(display_rows, display_cols, i + 1)
+        plt.ion()
+        img = w.reshape(96, 96)
+        plt.axis('off')
+        plt.imshow(img, cmap='gray')
+        plt.gcf().set_size_inches(10, 10)
+    # plt.show()
+    plt.pause(0.05)
 
 
-def make_mosaic(layer_weights):
-    # Dirty hack (TM)
-    lw_shape = layer_weights.shape
-    lw = make_visual(layer_weights).reshape(8, 12, *lw_shape[1:])
-    lw = lw.transpose(0, 3, 1, 4, 2)
-    lw = lw.reshape(8 * lw_shape[-1], 12 * lw_shape[-2], lw_shape[1])
-    return lw
-
-
-def plot_filters(layer_weights, title=None, show=False):
-    mosaic = make_mosaic(layer_weights)
-    plt.imshow(mosaic, interpolation='nearest')
-    ax = plt.gca()
-    ax.xaxis.set_visible(False)
-    ax.yaxis.set_visible(False)
-    if title is not None:
-        plt.title(title)
-    if show:
-        plt.show()
+def do_plots(tr_error, cv_error):
+    plt.plot(tr_error, linewidth=3, label="train")
+    plt.plot(cv_error, linewidth=3, label="valid")
+    plt.grid()
+    plt.legend()
+    plt.xlabel("iterations")
+    plt.ylabel("loss")
+    plt.yscale("log")
+    plt.show()
 
 
 if __name__ == '__main__':
-    file_train = './data/facepoints_train.csv'
-    file_test = './data/facepoints_test.csv'
-
-    X, Y = load(file_train)
+    # file_train = 'data/training.csv'
+    # file_test = 'data/test.csv'
+    # X, Y = load(file_train)
+    X, Y = pickle.load(open("data/data.p", "rb"))
+    # do_plots(pickle.load(open("model.p", "rb"))[1], pickle.load(open("model.p", "rb"))[2])
     # keep random seed for now #
-    train_set_x, test_set_x, train_set_y, test_set_y = train_test_split(X, Y, test_size=0.3, random_state=0)
-    test_set_x, cros_set_x, test_set_y, cros_set_y = train_test_split(test_set_x, test_set_y, test_size=0.5, random_state=0)
+    # train_set_x, test_set_x, train_set_y, test_set_y = train_test_split(X, Y, test_size=0.2, random_state=0)
+    # test_set_x, cros_set_x, test_set_y, cros_set_y = train_test_split(test_set_x, test_set_y, test_size=0.5, random_state=0)
+    train_set_x, cros_set_x, train_set_y, cros_set_y = train_test_split(X, Y, test_size=0.3, random_state=0)
 
-    print('Train set: X - %s, Y - %s' % (str(train_set_x.shape), str(train_set_y.shape)))
-    print('Cross set: X - %s, Y - %s' % (str(cros_set_x.shape), str(cros_set_y.shape)))
-    print('Test set : X - %s, Y - %s' % (str(test_set_x.shape), str(test_set_y.shape)))
+    print('Train set: X dim %s, Y dim %s' % (str(train_set_x.shape), str(train_set_y.shape)))
+    print('Cross set: X dim %s, Y dim %s' % (str(cros_set_x.shape), str(cros_set_y.shape)))
+    # print('Test set : X dim %s, Y dim %s' % (str(test_set_x.shape), str(test_set_y.shape)))
 
-    data = [[train_set_x, train_set_y], [cros_set_x, cros_set_y], [test_set_x, test_set_y]]
+    # data = [[train_set_x, train_set_y], [cros_set_x, cros_set_y], [test_set_x, test_set_y]]
+    data = [[train_set_x, train_set_y], [cros_set_x, cros_set_y]]
 
-    train_mlp_model(dataset=data, learning_rate=0.1, L1_reg=0.0, L2_reg=0.001, n_epochs=1000, batch_size=50, n_hidden=0)
+    train_mlp_model(dataset=data, learning_rate=0.08, L1_reg=0.0, L2_reg=0.001, max_iter=1000, n_hidden=100)
