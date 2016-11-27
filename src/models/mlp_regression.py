@@ -104,14 +104,15 @@ class MLPRegression(object):
     """ Multi-Layer perceptron consisting of a hidden layer and a fully connected
         linear regression layer.
     """
-    def __init__(self, rng, input, n_in, n_hidden, n_out):
+    def __init__(self, rng, input, n_in, n_hidden, n_hidden2, n_out):
         # one hidden layer with tanh activation, connected to the final linear regression layer #
         self.hiddenLayer = HiddenLayer(rng=rng, input=input, n_in=n_in, n_out=n_hidden, activation=T.tanh)
+        self.hiddenLayer2 = HiddenLayer(rng=rng, input=self.hiddenLayer.output, n_in=n_hidden, n_out=n_hidden2, activation=T.tanh)
         # The logistic regression layer gets as input the hidden units of the linear reg. layer #
-        self.linRegressionLayer = LinearRegression(input=self.hiddenLayer.output, n_in=n_hidden, n_out=n_out)
+        self.linRegressionLayer = LinearRegression(input=self.hiddenLayer2.output, n_in=n_hidden2, n_out=n_out)
         # Two norms, along with sum of squares loss function (output of LinearRegression layer) #
-        self.L1 = abs(self.hiddenLayer.W).sum() + abs(self.linRegressionLayer.W).sum()
-        self.L2_sqr = (self.hiddenLayer.W ** 2).sum() + (self.linRegressionLayer.W ** 2).sum()
+        self.L1 = abs(self.hiddenLayer.W).sum() + abs(self.hiddenLayer2.W).sum() + abs(self.linRegressionLayer.W).sum()
+        self.L2 = (self.hiddenLayer2.W ** 2).sum() + (self.hiddenLayer.W ** 2).sum() + (self.linRegressionLayer.W ** 2).sum()
         self.mean_squared_errors = self.linRegressionLayer.mean_squared_errors
         self.y_pred = self.linRegressionLayer.y_pred
         # the parameters of the model are the parameters of the layers it is made out of #
@@ -133,7 +134,7 @@ class MLPLogisticRegression(object):
         # L1 norm regularization (remember to add more hidden layers if used) #
         self.L1 = (abs(self.hiddenLayer.W).sum() + abs(self.logRegressionLayer.W).sum())
         # L2 norm regularization (remember to add more hidden layers if used) #
-        self.L2_sqr = ((self.hiddenLayer.W ** 2).sum() + (self.logRegressionLayer.W ** 2).sum())
+        self.L2 = ((self.hiddenLayer.W ** 2).sum() + (self.logRegressionLayer.W ** 2).sum())
         # negative log likelihood of the MLP is given by the negative #
         # log likelihood of the output of the model, computed in the logistic regression layer #
         self.negative_log_likelihood = (self.logRegressionLayer.negative_log_likelihood)
