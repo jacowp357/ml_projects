@@ -19,12 +19,13 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.cross_validation import train_test_split
 import models.mlp_regression as mlp
+import models.gradient_optimisation as gradopt
 from collections import OrderedDict
 plt.style.use('ggplot')
 
 
 def load(fname, test=None):
-    # Adapted from Daniel Nouri <http://danielnouri.org/notes/2014/12/17/using-convolutional-neural-nets-to-detect-facial-keypoints-tutorial/> #
+    # adapted from Daniel Nouri <http://danielnouri.org> #
     df = read_csv(os.path.expanduser(fname))
     print(df.shape)
     df['Image'] = df['Image'].apply(lambda im: np.fromstring(im, sep=' '))
@@ -92,44 +93,6 @@ class MLP(object):
         self.input = input
 
 
-def nag(cost, params, learning_rate, momentum):
-    # Nesterov’s Accelerated Gradient #
-    assert momentum < 1 and momentum >= 0.0
-
-    grads = T.grad(cost, params)
-    updates = OrderedDict()
-
-    for param, grad in zip(params, grads):
-        value = param.get_value(borrow=True)
-        velocity = theano.shared(np.zeros(value.shape, dtype=value.dtype), name="v", broadcastable=param.broadcastable)
-        updates[param] = param - learning_rate * grad
-        updates[velocity] = momentum * velocity + updates[param] - param
-        updates[param] = momentum * updates[velocity] + updates[param]
-    return updates
-
-
-def momentum(cost, params, learning_rate, momentum):
-    # Make sure momentum is a sane value
-    assert momentum < 1 and momentum >= 0
-    # List of update steps for each parameter
-    updates = []
-    # Just gradient descent on cost
-    for param in params:
-        # For each parameter, we'll create a previous_step shared variable.
-        # This variable will keep track of the parameter's update step across iterations.
-        # We initialize it to 0
-        previous_step = theano.shared(param.get_value() * 0., broadcastable=param.broadcastable)
-        # Each parameter is updated by taking a step in the direction of the gradient.
-        # However, we also "mix in" the previous step according to the given momentum value.
-        # Note that we don't need to derive backpropagation to compute updates - just use T.grad!
-        step = momentum * previous_step - learning_rate * T.grad(cost, param)
-        # Add an update to store the previous step value
-        updates.append((previous_step, step))
-        # Add an update to apply the gradient descent step to the parameter itself
-        updates.append((param, param + step))
-    return updates
-
-
 def train_mlp_model(dataset, model_name, learning_rate=0, momentum=0, L1_reg=0, L2_reg=0, n_hidden=0, n_hidden2=0, max_iter=0):
     # shared Theano format for data #
     datasets, num_features, num_outputs = convert_data_theano(dataset)
@@ -159,8 +122,8 @@ def train_mlp_model(dataset, model_name, learning_rate=0, momentum=0, L1_reg=0, 
     # gparams = [T.grad(cost, param) for param in regressor.params]
     # specify update of the model parameters as list of (variable, update_expression) pairs #
     # updates = [(param, param - learning_rate * gparam) for param, gparam in zip(regressor.params, gparams)]
-    # updates = momentum(cost, regressor.params, learning_rate, momentum)
-    updates = nag(cost, regressor.params, learning_rate, momentum)
+    # updates = gradopt.momentum(cost, regressor.params, learning_rate, momentum)
+    updates = gradopt.nag(cost, regressor.params, learning_rate, momentum)
     # compiling a Theano function `train_model` that returns the cost and updates parameters #
     # train_model = theano.function(inputs=[index], outputs=cost, updates=updates, givens={x: train_set_x, y: train_set_y}, on_unused_input='ignore')
     train_model = theano.function(inputs=[index], outputs=cost, updates=updates, givens={x: train_set_x, y: train_set_y}, on_unused_input='ignore')
@@ -184,15 +147,16 @@ def train_mlp_model(dataset, model_name, learning_rate=0, momentum=0, L1_reg=0, 
         print("Iteration {}: MSE training {:.5f}, validation {:.5f}".format(iterations, train_losses, validation_losses))
         # save the model #
         pickle.dump((regressor, tr_error, cv_error), open(model_name, "wb"))
-        # plot_predictions(test_img, pickle.load(open(model_name, "rb"))[0], 4)
+        # plot_predictions(test_img, pickle.load(open(model_name, "rb"))[0], 4, run_time=True)
     end_time = timeit.default_timer()
     print(('The code ran for %.2fm' % ((end_time - start_time) / 60.)))
 
 
-def plot_predictions(data, model, img_num):
+def plot_predictions(data, model, img_num, run_time=None):
     # compile a predictor function #
     predict_model_n = theano.function(inputs=[model.input], outputs=model.y_pred, allow_input_downcast=True)
-    plt.ion()
+    if run_time:
+        plt.ion()
     fig = plt.figure(figsize=(7, 7))
     fig.subplots_adjust(left=0, right=1, bottom=0, top=1, hspace=0.02, wspace=0.02)
     for i in range(img_num):
@@ -203,7 +167,10 @@ def plot_predictions(data, model, img_num):
         ax.scatter(pred_y[0::2] * 48 + 48, pred_y[1::2] * 48 + 48, linewidth=2, marker='+', color='magenta', s=20)
         plt.xlim([0, 96])
         plt.ylim([96, 0])
-    plt.pause(0.001)
+    if run_time:
+        plt.pause(0.001)
+    else:
+        plt.show()
 
 
 def plot_performance(tr_error, cv_error, method):
@@ -218,15 +185,15 @@ def plot_performance(tr_error, cv_error, method):
 
 
 if __name__ == '__main__':
-    file_train = 'data/training.csv'
     file_test = 'data/test.csv'
+    file_train = 'data/training.csv'
     # X, Y = load(file_train)
     X, Y = pickle.load(open("data/data.p", "rb"))
 
     # keep random seed for now #
     # train_set_x, test_set_x, train_set_y, test_set_y = train_test_split(X, Y, test_size=0.2, random_state=0)
     # test_set_x, cros_set_x, test_set_y, cros_set_y = train_test_split(test_set_x, test_set_y, test_size=0.5, random_state=0)
-    train_set_x, cros_set_x, train_set_y, cros_set_y = train_test_split(X, Y, test_size=0.4, random_state=None)
+    train_set_x, cros_set_x, train_set_y, cros_set_y = train_test_split(X, Y, test_size=0.45, random_state=None)
 
     print('Train set: X dim %s, Y dim %s' % (str(train_set_x.shape), str(train_set_y.shape)))
     print('Cross set: X dim %s, Y dim %s' % (str(cros_set_x.shape), str(cros_set_y.shape)))
@@ -237,10 +204,10 @@ if __name__ == '__main__':
 
     model_name = "neural_hid_200_act_softplus_no_reg_mom_0.9_lr_0.01_nesterov.p.p"
 
-    train_mlp_model(dataset=data, model_name=model_name, learning_rate=0.01, momentum=0.9, L1_reg=0.0, L2_reg=0.0, max_iter=10000, n_hidden=200, n_hidden2=None)
+    train_mlp_model(dataset=data, model_name=model_name, learning_rate=0.01, momentum=0.9, L1_reg=0.0, L2_reg=0.0, max_iter=100000, n_hidden=200, n_hidden2=None)
 
     # mean method benchmark = 3.96244 #
-    # plt.show()
 
     # X = load(file_test, test=True)
-    # plot_predictions(X, pickle.load(open(model_name, "rb"))[0], 64)
+    # X = X[np.random.permutation(len(X))]
+    # plot_predictions(X, pickle.load(open(model_name, "rb"))[0], 4, run_time=False)
