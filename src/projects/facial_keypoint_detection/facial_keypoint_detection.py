@@ -19,12 +19,14 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.cross_validation import train_test_split
 import models.mlp_regression as mlp
+from collections import OrderedDict
 plt.style.use('ggplot')
 
 
 def load(fname, test=None):
     # Adapted from Daniel Nouri <http://danielnouri.org/notes/2014/12/17/using-convolutional-neural-nets-to-detect-facial-keypoints-tutorial/> #
     df = read_csv(os.path.expanduser(fname))
+    print(df.shape)
     df['Image'] = df['Image'].apply(lambda im: np.fromstring(im, sep=' '))
     # drop nans for now #
     df = df.dropna()
@@ -74,40 +76,39 @@ class MLP(object):
     # linear regression layer #
     def __init__(self, rng, input, n_in, n_out, n_hidden, n_hidden2):
         # one hidden layer with sigmoid activations, connected to the final linear regression layer #
-        # self.hiddenLayer = mlp.HiddenLayer(rng=rng, input=input, n_in=n_in, n_out=n_hidden, activation=T.nnet.softplus)  # T.tanh, T.nnet.sigmoid, T.nnet.relu, T.nnet.softplus
+        self.hiddenLayer = mlp.HiddenLayer(rng=rng, input=input, n_in=n_in, n_out=n_hidden, activation=T.nnet.softplus)  # T.tanh, T.nnet.sigmoid, T.nnet.relu, T.nnet.softplus
         # self.hiddenLayer2 = mlp.HiddenLayer(rng=rng, input=self.hiddenLayer.output, n_in=n_hidden, n_out=n_hidden2, activation=T.tanh)
-        # self.linRegressionLayer = mlp.LinearRegression(input=self.hiddenLayer.output, n_in=n_hidden, n_out=n_out)
-        self.linRegressionLayer = mlp.LinearRegression(input=input, n_in=n_in, n_out=n_out)
+        self.linRegressionLayer = mlp.LinearRegression(input=self.hiddenLayer.output, n_in=n_hidden, n_out=n_out)
+        # self.linRegressionLayer = mlp.LinearRegression(input=input, n_in=n_in, n_out=n_out)
         # two norms along with sum of squares loss function (output of linear regression layer) #
-        self.L1 = abs(self.linRegressionLayer.W).sum()
-        self.L2 = (self.linRegressionLayer.W ** 2).sum()
-        # self.L1 = abs(self.hiddenLayer.W).sum() + abs(self.linRegressionLayer.W).sum()
-        # self.L2 = (self.hiddenLayer.W ** 2).sum() + (self.linRegressionLayer.W ** 2).sum()
+        # self.L1 = abs(self.linRegressionLayer.W).sum()
+        # self.L2 = (self.linRegressionLayer.W ** 2).sum()
+        self.L1 = abs(self.hiddenLayer.W).sum() + abs(self.linRegressionLayer.W).sum()
+        self.L2 = (self.hiddenLayer.W ** 2).sum() + (self.linRegressionLayer.W ** 2).sum()
         self.mean_squared_errors = self.linRegressionLayer.mean_squared_errors
         self.y_pred = self.linRegressionLayer.y_pred
-        # self.params = self.hiddenLayer.params + self.linRegressionLayer.params
-        self.params = self.linRegressionLayer.params
+        self.params = self.hiddenLayer.params + self.linRegressionLayer.params
+        # self.params = self.linRegressionLayer.params
         self.input = input
 
 
-def gradient_updates_momentum(cost, params, learning_rate, momentum):
-    '''
-    Compute updates for gradient descent with momentum
+def nag(cost, params, learning_rate, momentum):
+    # Nesterov’s Accelerated Gradient #
+    assert momentum < 1 and momentum >= 0.0
 
-    :parameters:
-        - cost : theano.tensor.var.TensorVariable
-            Theano cost function to minimize
-        - params : list of theano.tensor.var.TensorVariable
-            Parameters to compute gradient against
-        - learning_rate : float
-            Gradient descent learning rate
-        - momentum : float
-            Momentum parameter, should be at least 0 (standard gradient descent) and less than 1
+    grads = T.grad(cost, params)
+    updates = OrderedDict()
 
-    :returns:
-        updates : list
-            List of updates, one for each parameter
-    '''
+    for param, grad in zip(params, grads):
+        value = param.get_value(borrow=True)
+        velocity = theano.shared(np.zeros(value.shape, dtype=value.dtype), name="v", broadcastable=param.broadcastable)
+        updates[param] = param - learning_rate * grad
+        updates[velocity] = momentum * velocity + updates[param] - param
+        updates[param] = momentum * updates[velocity] + updates[param]
+    return updates
+
+
+def momentum(cost, params, learning_rate, momentum):
     # Make sure momentum is a sane value
     assert momentum < 1 and momentum >= 0
     # List of update steps for each parameter
@@ -134,7 +135,7 @@ def train_mlp_model(dataset, model_name, learning_rate=0, momentum=0, L1_reg=0, 
     datasets, num_features, num_outputs = convert_data_theano(dataset)
     train_set_x, train_set_y = datasets[0]
     cros_set_x, cros_set_y = datasets[1]
-    test_img = np.asmatrix(load(file_test, test=True))
+    # test_img = np.asmatrix(load(file_test, test=True))
     # test_set_x, test_set_y = datasets[2]
 
     print('build the model...')
@@ -150,15 +151,16 @@ def train_mlp_model(dataset, model_name, learning_rate=0, momentum=0, L1_reg=0, 
     regressor = MLP(rng=rng, input=x, n_in=num_features, n_out=num_outputs, n_hidden=n_hidden, n_hidden2=n_hidden2)
     # compute the cost function #
     cost = (regressor.mean_squared_errors(y) + L1_reg * regressor.L1 + L2_reg * regressor.L2)
-    # theano function that computes the MSE on a minibatch #
+    # theano function that computes the MSE #
     validate_train_model = theano.function(inputs=[index], outputs=regressor.mean_squared_errors(y), givens={x: train_set_x, y: train_set_y}, on_unused_input='ignore')
     validate_cross_model = theano.function(inputs=[index], outputs=regressor.mean_squared_errors(y), givens={x: cros_set_x, y: cros_set_y}, on_unused_input='ignore')
     # validate_test_model = theano.function(inputs=[index], outputs=regressor.mean_squared_errors(y), givens={x: test_set_x, y: test_set_y}, on_unused_input='ignore')
     # compute the gradient of the cost function #
-    gparams = [T.grad(cost, param) for param in regressor.params]
+    # gparams = [T.grad(cost, param) for param in regressor.params]
     # specify update of the model parameters as list of (variable, update_expression) pairs #
-    updates = [(param, param - learning_rate * gparam) for param, gparam in zip(regressor.params, gparams)]
-    # updates = gradient_updates_momentum(cost, regressor.params, learning_rate, momentum)
+    # updates = [(param, param - learning_rate * gparam) for param, gparam in zip(regressor.params, gparams)]
+    # updates = momentum(cost, regressor.params, learning_rate, momentum)
+    updates = nag(cost, regressor.params, learning_rate, momentum)
     # compiling a Theano function `train_model` that returns the cost and updates parameters #
     # train_model = theano.function(inputs=[index], outputs=cost, updates=updates, givens={x: train_set_x, y: train_set_y}, on_unused_input='ignore')
     train_model = theano.function(inputs=[index], outputs=cost, updates=updates, givens={x: train_set_x, y: train_set_y}, on_unused_input='ignore')
@@ -182,10 +184,9 @@ def train_mlp_model(dataset, model_name, learning_rate=0, momentum=0, L1_reg=0, 
         print("Iteration {}: MSE training {:.5f}, validation {:.5f}".format(iterations, train_losses, validation_losses))
         # save the model #
         pickle.dump((regressor, tr_error, cv_error), open(model_name, "wb"))
-        # plot_predictions(test_img, pickle.load(open(model_name, "rb"))[0], 36)
+        # plot_predictions(test_img, pickle.load(open(model_name, "rb"))[0], 4)
     end_time = timeit.default_timer()
     print(('The code ran for %.2fm' % ((end_time - start_time) / 60.)))
-    # do_plots(tr_error, cv_error, ts_error)
 
 
 def plot_predictions(data, model, img_num):
@@ -199,20 +200,21 @@ def plot_predictions(data, model, img_num):
         img = data[i].reshape(96, 96)
         ax.imshow(img, cmap='gray')
         pred_y = predict_model_n(np.asmatrix(data[i]))[0]
-        ax.scatter(pred_y[0::2] * 48 + 48, pred_y[1::2] * 48 + 48, marker='*', color='magenta', s=20)
+        ax.scatter(pred_y[0::2] * 48 + 48, pred_y[1::2] * 48 + 48, linewidth=2, marker='+', color='magenta', s=20)
         plt.xlim([0, 96])
         plt.ylim([96, 0])
-    plt.pause(0.01)
+    plt.pause(0.001)
 
 
-def do_plots(tr_error, cv_error):
-    plt.plot(tr_error, linewidth=2, label="Training loss")
-    plt.plot(cv_error, linewidth=2, label="Validation loss")
+def plot_performance(tr_error, cv_error, method):
+    plt.plot(tr_error, linewidth=2, label="Training loss (%s)" % (method))
+    plt.plot(cv_error, linewidth=2, label="Validation loss (%s)" % (method))
     plt.legend()
     plt.xlabel("Iterations")
     plt.ylabel("MSE Loss")
     plt.title("MSE loss per iteration")
-    # plt.yscale("log")
+    plt.yscale("log")
+    print("Method %s : min train %.3f, valid %.3f)" % (method, np.min(tr_error), np.min(cv_error)))
 
 
 if __name__ == '__main__':
@@ -233,13 +235,12 @@ if __name__ == '__main__':
     # data = [[train_set_x, train_set_y], [cros_set_x, cros_set_y], [test_set_x, test_set_y]]
     data = [[train_set_x, train_set_y], [cros_set_x, cros_set_y]]
 
-    model_name = "linear_no_reg_no_mom_lr_0.01.p"
+    model_name = "neural_hid_200_act_softplus_no_reg_mom_0.9_lr_0.01_nesterov.p.p"
 
-    train_mlp_model(dataset=data, model_name=model_name, learning_rate=0.01, momentum=None, L1_reg=0.0, L2_reg=0.0, max_iter=10000, n_hidden=None, n_hidden2=None)
+    train_mlp_model(dataset=data, model_name=model_name, learning_rate=0.01, momentum=0.9, L1_reg=0.0, L2_reg=0.0, max_iter=10000, n_hidden=200, n_hidden2=None)
 
     # mean method benchmark = 3.96244 #
-    do_plots(pickle.load(open(model_name, "rb"))[1], pickle.load(open(model_name, "rb"))[2])
-    plt.show()
+    # plt.show()
 
     # X = load(file_test, test=True)
     # plot_predictions(X, pickle.load(open(model_name, "rb"))[0], 64)
