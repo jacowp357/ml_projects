@@ -47,3 +47,33 @@ def momentum(cost, params, learning_rate, momentum):
         updates.append((param, param + step))
     return updates
 
+
+def ada_delta(params, gparams):
+    # http://deeplearning.net/tutorial/code/lstm.py #
+    zipped_grads = [theano.shared(p.get_value() * np.asarray(0., dtype=theano.config.floatX)) for p in params]
+    running_up2 = [theano.shared(p.get_value() * np.asarray(0., dtype=theano.config.floatX)) for p in params]
+    running_grads2 = [theano.shared(p.get_value() * np.asarray(0., dtype=theano.config.floatX)) for p in params]
+
+    zgup = [(zg, g) for zg, g in zip(zipped_grads, gparams)]
+    rg2up = [(rg2, 0.95 * rg2 + 0.05 * (g ** 2)) for rg2, g in zip(running_grads2, gparams)]
+
+    updir = [-T.sqrt(ru2 + 1e-6) / T.sqrt(rg2 + 1e-6) * zg for zg, ru2, rg2 in zip(zipped_grads, running_up2, running_grads2)]
+    ru2up = [(ru2, 0.95 * ru2 + 0.05 * (ud ** 2)) for ru2, ud in zip(running_up2, updir)]
+    param_up = [(p, p + ud) for p, ud in zip(params, updir)]
+
+    updates = zgup + rg2up + ru2up + param_up
+
+    return updates
+
+
+def rms_prop(cost, params, lr=0.01, rho=0.9, epsilon=1e-6):
+    grads = T.grad(cost=cost, wrt=params)
+    updates = []
+    for p, g in zip(params, grads):
+        acc = theano.shared(p.get_value() * 0.)
+        acc_new = rho * acc + (1 - rho) * g ** 2
+        gradient_scaling = T.sqrt(acc_new + epsilon)
+        g = g / gradient_scaling
+        updates.append((acc, acc_new))
+        updates.append((p, p - lr * g))
+    return updates

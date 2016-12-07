@@ -1,10 +1,10 @@
 # Projects: facial_keypoint_detection
 #
-# :Authors: Jaco du Toit <jacowp357@gmail.com>
+# :Author: Jaco du Toit <jacowp357@gmail.com>
+# :Date: 01/11/2016
 # :Description: Attempt at modelling the facial keypoint detection
 #               problem presented in a Kaggle challenge.
 # :URL: <https://www.kaggle.com/c/facial-keypoints-detection>
-# :Date: 01/11/2016
 #
 import os
 import sys
@@ -14,13 +14,13 @@ import numpy as np
 import theano
 from pandas.io.parsers import read_csv
 import theano.tensor as T
+from six.moves import cPickle
 import pickle
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.cross_validation import train_test_split
 import models.mlp_regression as mlp
 import models.gradient_optimisation as gradopt
-from collections import OrderedDict
 plt.style.use('ggplot')
 
 
@@ -75,11 +75,16 @@ def convert_data_theano(dataset):
 class MLP(object):
     # Multi-Layer Perceptron consisting of a hidden layer and a fully connected #
     # linear regression layer #
-    def __init__(self, rng, input, n_in, n_out, n_hidden, n_hidden2):
+    def __init__(self, rng, model, input, n_in, n_out, n_hidden, n_hidden2):
         # one hidden layer with sigmoid activations, connected to the final linear regression layer #
-        self.hiddenLayer = mlp.HiddenLayer(rng=rng, input=input, n_in=n_in, n_out=n_hidden, activation=T.nnet.softplus)  # T.tanh, T.nnet.sigmoid, T.nnet.relu, T.nnet.softplus
-        # self.hiddenLayer2 = mlp.HiddenLayer(rng=rng, input=self.hiddenLayer.output, n_in=n_hidden, n_out=n_hidden2, activation=T.tanh)
-        self.linRegressionLayer = mlp.LinearRegression(input=self.hiddenLayer.output, n_in=n_hidden, n_out=n_out)
+        if model:
+            self.hiddenLayer = mlp.HiddenLayer(rng=rng, W=model.params[0], b=model.params[1], input=input, n_in=n_in, n_out=n_hidden, activation=T.nnet.softplus)  # T.tanh, T.nnet.sigmoid, T.nnet.relu, T.nnet.softplus
+            # self.hiddenLayer2 = mlp.HiddenLayer(rng=rng, input=self.hiddenLayer.output, n_in=n_hidden, n_out=n_hidden2, activation=T.tanh)
+            self.linRegressionLayer = mlp.LinearRegression(W=model.params[2], b=model.params[3], input=self.hiddenLayer.output, n_in=n_hidden, n_out=n_out)
+        else:
+            self.hiddenLayer = mlp.HiddenLayer(rng=rng, W=None, b=None, input=input, n_in=n_in, n_out=n_hidden, activation=T.nnet.softplus)  # T.tanh, T.nnet.sigmoid, T.nnet.relu, T.nnet.softplus
+            # self.hiddenLayer2 = mlp.HiddenLayer(rng=rng, input=self.hiddenLayer.output, n_in=n_hidden, n_out=n_hidden2, activation=T.nnet.softplus)
+            self.linRegressionLayer = mlp.LinearRegression(W=None, b=None, input=self.hiddenLayer.output, n_in=n_hidden, n_out=n_out)
         # self.linRegressionLayer = mlp.LinearRegression(input=input, n_in=n_in, n_out=n_out)
         # two norms along with sum of squares loss function (output of linear regression layer) #
         # self.L1 = abs(self.linRegressionLayer.W).sum()
@@ -93,7 +98,7 @@ class MLP(object):
         self.input = input
 
 
-def train_mlp_model(dataset, model_name, learning_rate=0, momentum=0, L1_reg=0, L2_reg=0, n_hidden=0, n_hidden2=0, max_iter=0):
+def train_mlp_model(dataset, model_name, model=None, learning_rate=0, momentum=0, L1_reg=0, L2_reg=0, n_hidden=0, n_hidden2=0, max_iter=0):
     # shared Theano format for data #
     datasets, num_features, num_outputs = convert_data_theano(dataset)
     train_set_x, train_set_y = datasets[0]
@@ -111,7 +116,7 @@ def train_mlp_model(dataset, model_name, learning_rate=0, momentum=0, L1_reg=0, 
     # random state for weight initialisation #
     rng = np.random.RandomState(1234)
     # initialise multi-layer perceptron #
-    regressor = MLP(rng=rng, input=x, n_in=num_features, n_out=num_outputs, n_hidden=n_hidden, n_hidden2=n_hidden2)
+    regressor = MLP(rng=rng, model=model, input=x, n_in=num_features, n_out=num_outputs, n_hidden=n_hidden, n_hidden2=n_hidden2)
     # compute the cost function #
     cost = (regressor.mean_squared_errors(y) + L1_reg * regressor.L1 + L2_reg * regressor.L2)
     # theano function that computes the MSE #
@@ -123,7 +128,9 @@ def train_mlp_model(dataset, model_name, learning_rate=0, momentum=0, L1_reg=0, 
     # specify update of the model parameters as list of (variable, update_expression) pairs #
     # updates = [(param, param - learning_rate * gparam) for param, gparam in zip(regressor.params, gparams)]
     # updates = gradopt.momentum(cost, regressor.params, learning_rate, momentum)
-    updates = gradopt.nag(cost, regressor.params, learning_rate, momentum)
+    updates = gradopt.nesterov_accelerated_gradient(cost, regressor.params, learning_rate, momentum)
+    # updates = gradopt.adadelta(regressor.params, gparams)
+    # updates = gradopt.rms_prop(cost, regressor.params, learning_rate, momentum)
     # compiling a Theano function `train_model` that returns the cost and updates parameters #
     # train_model = theano.function(inputs=[index], outputs=cost, updates=updates, givens={x: train_set_x, y: train_set_y}, on_unused_input='ignore')
     train_model = theano.function(inputs=[index], outputs=cost, updates=updates, givens={x: train_set_x, y: train_set_y}, on_unused_input='ignore')
@@ -146,7 +153,9 @@ def train_mlp_model(dataset, model_name, learning_rate=0, momentum=0, L1_reg=0, 
         # ts_error.append(test_losses)
         print("Iteration {}: MSE training {:.5f}, validation {:.5f}".format(iterations, train_losses, validation_losses))
         # save the model #
-        pickle.dump((regressor, tr_error, cv_error), open(model_name, "wb"))
+        with open(model_name, "wb") as f:
+            for obj in [regressor, tr_error, cv_error]:
+                cPickle.dump(obj, f, protocol=cPickle.HIGHEST_PROTOCOL)
         # plot_predictions(test_img, pickle.load(open(model_name, "rb"))[0], 4, run_time=True)
     end_time = timeit.default_timer()
     print(('The code ran for %.2fm' % ((end_time - start_time) / 60.)))
@@ -182,6 +191,7 @@ def plot_performance(tr_error, cv_error, method):
     plt.title("MSE loss per iteration")
     plt.yscale("log")
     print("Method %s : min train %.3f, valid %.3f)" % (method, np.min(tr_error), np.min(cv_error)))
+    plt.show()
 
 
 if __name__ == '__main__':
@@ -202,12 +212,20 @@ if __name__ == '__main__':
     # data = [[train_set_x, train_set_y], [cros_set_x, cros_set_y], [test_set_x, test_set_y]]
     data = [[train_set_x, train_set_y], [cros_set_x, cros_set_y]]
 
-    model_name = "neural_hid_200_act_softplus_no_reg_mom_0.9_lr_0.01_nesterov.p.p"
+    model_name = "l0.01_m0.9_h200.p"
 
-    train_mlp_model(dataset=data, model_name=model_name, learning_rate=0.01, momentum=0.9, L1_reg=0.0, L2_reg=0.0, max_iter=100000, n_hidden=200, n_hidden2=None)
+    # # prev_model = pickle.load(open("test2.p", "rb"))
 
-    # mean method benchmark = 3.96244 #
+    train_mlp_model(dataset=data, model=None, model_name=model_name, learning_rate=0.01, momentum=0.9, L1_reg=0.0, L2_reg=0.0, max_iter=10000, n_hidden=200, n_hidden2=None)
+
+    # plot performance #
+    # loaded_obj = []
+    # with open(model_name, "rb") as f:
+    #     for i in range(3):
+    #         loaded_obj.append(cPickle.load(f))
+
+    # plot_performance(loaded_obj[1], loaded_obj[2], 'test')
 
     # X = load(file_test, test=True)
     # X = X[np.random.permutation(len(X))]
-    # plot_predictions(X, pickle.load(open(model_name, "rb"))[0], 4, run_time=False)
+    # plot_predictions(X, loaded_obj[0], 4, run_time=False)

@@ -12,9 +12,15 @@ import theano.tensor as T
 class LinearRegression(object):
     """ Linear Regression class.
     """
-    def __init__(self, input, n_in, n_out):
-        self.W = theano.shared(value=np.zeros((n_in, n_out), dtype=theano.config.floatX), name='W', borrow=True)
-        self.b = theano.shared(value=np.zeros((n_out,), dtype=theano.config.floatX), name='b', borrow=True)
+    def __init__(self, input, n_in, n_out, W=None, b=None):
+        if W is None:
+            self.W = theano.shared(value=np.zeros((n_in, n_out), dtype=theano.config.floatX), name='W', borrow=True)
+        else:
+            self.W = W
+        if b is None:
+            self.b = theano.shared(value=np.zeros((n_out,), dtype=theano.config.floatX), name='b', borrow=True)
+        else:
+            self.b = b
         self.y_pred = T.dot(input, self.W) + self.b
         self.params = [self.W, self.b]
         self.input = input
