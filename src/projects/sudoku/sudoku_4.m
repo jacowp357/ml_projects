@@ -8,7 +8,7 @@ clc;
 
 % Constants %
 SEPSET_SUM_CONVERGENCE_THRES = 0.00001;
-MAX_ITER = 50;
+MAX_ITER = 20;
 
 % States %
 one = 1; two = 2; three = 3; four = 4;
@@ -32,7 +32,7 @@ for f = fc1:fc4
     pot(f).variables = [g(i, :)];
     i = i + 1;
 end;
-    
+
 % Vertical rules/factors %
 i = 1;
 for f = fc5:fc8
@@ -60,7 +60,7 @@ for x1 = one:four
                     end;
                 else
                     for fc = fc1:fc12
-                        pot(fc).table(x1, x2, x3, x4) = 0;                        
+                        pot(fc).table(x1, x2, x3, x4) = 0;
                     end;
                 end;
             end;
@@ -86,7 +86,7 @@ for fr = fr1:fr16
     end;
 end;
 
-% Setup the evidence % 
+% Setup the evidence %
 evidence_cells = [4, 5, 10, 15];
 %pot(fr1) = setpot(pot(fr1), r1, three);
 %pot(fr2) = setpot(pot(fr2), r2, two);
@@ -116,9 +116,9 @@ pot(fr15) = setpot(pot(fr15), r15, one);
 fr = 13;
 for c = 1:16
    for p = 1:12
-      if ismember(c, pot(p).variables)  
+      if ismember(c, pot(p).variables)
          cluster(c).pot = pot(fr);
-         cluster(c).sepset{p + 16} = c; 
+         cluster(c).sepset{p + 16} = c;
       end;
    end;
    fr = fr + 1;
@@ -126,7 +126,7 @@ end;
 
 % cluster assignment for all cells involving brick rules %
 for p = 1:12
-   cluster(p + 16).pot = pot(p); 
+   cluster(p + 16).pot = pot(p);
 end;
 
 cluster = inferSepsets(cluster); % a sepset only has to be defined once, then it is added automatically by this function
@@ -155,7 +155,7 @@ for k = 1:MAX_ITER
     prevSepsetBeliefs = sepsetBeliefs;
 
     % Koller Slide 8.1.9: Select edge (i, j) and pass message %
-    
+
     for i = 1:28
         for p = 1:12
             if ismember(i, pot(p).variables)
@@ -177,116 +177,116 @@ for k = 1:MAX_ITER
 %     cluster = passMessage(cluster, 21, 1);
 %     cluster = passMessage(cluster, 1, 25);
 %     cluster = passMessage(cluster, 25, 1);
-%     
-%     cluster = passMessage(cluster, 2, 17);    
+%
+%     cluster = passMessage(cluster, 2, 17);
 %     cluster = passMessage(cluster, 17, 2);
 %     cluster = passMessage(cluster, 2, 22);
 %     cluster = passMessage(cluster, 22, 2);
 %     cluster = passMessage(cluster, 2, 25);
 %     cluster = passMessage(cluster, 25, 2);
-%     
-%     cluster = passMessage(cluster, 3, 17);    
+%
+%     cluster = passMessage(cluster, 3, 17);
 %     cluster = passMessage(cluster, 17, 3);
 %     cluster = passMessage(cluster, 3, 23);
 %     cluster = passMessage(cluster, 23, 3);
 %     cluster = passMessage(cluster, 3, 26);
 %     cluster = passMessage(cluster, 26, 3);
-%     
-% %     cluster = passMessage(cluster, 4, 17);   
+%
+% %     cluster = passMessage(cluster, 4, 17);
 %     cluster = passMessage(cluster, 17, 4);
 % %     cluster = passMessage(cluster, 4, 24);
 %     cluster = passMessage(cluster, 24, 4);
 % %     cluster = passMessage(cluster, 4, 26);
 %     cluster = passMessage(cluster, 26, 4);
-%     
+%
 % %     cluster = passMessage(cluster, 5, 18);
 %     cluster = passMessage(cluster, 18, 5);
 % %     cluster = passMessage(cluster, 5, 21);
 %     cluster = passMessage(cluster, 21, 5);
 % %     cluster = passMessage(cluster, 5, 25);
 %     cluster = passMessage(cluster, 25, 5);
-%     
-%     cluster = passMessage(cluster, 6, 18);    
+%
+%     cluster = passMessage(cluster, 6, 18);
 %     cluster = passMessage(cluster, 18, 6);
 %     cluster = passMessage(cluster, 6, 22);
 %     cluster = passMessage(cluster, 22, 6);
 %     cluster = passMessage(cluster, 6, 25);
 %     cluster = passMessage(cluster, 25, 6);
-% 
-%     cluster = passMessage(cluster, 7, 18);    
+%
+%     cluster = passMessage(cluster, 7, 18);
 %     cluster = passMessage(cluster, 18, 7);
 %     cluster = passMessage(cluster, 7, 23);
 %     cluster = passMessage(cluster, 23, 7);
 %     cluster = passMessage(cluster, 7, 26);
 %     cluster = passMessage(cluster, 26, 7);
-% 
-%     cluster = passMessage(cluster, 8, 18);    
+%
+%     cluster = passMessage(cluster, 8, 18);
 %     cluster = passMessage(cluster, 18, 8);
 %     cluster = passMessage(cluster, 8, 24);
 %     cluster = passMessage(cluster, 24, 8);
 %     cluster = passMessage(cluster, 8, 26);
 %     cluster = passMessage(cluster, 26, 8);
-% 
+%
 %     cluster = passMessage(cluster, 9, 19);
 %     cluster = passMessage(cluster, 19, 9);
 %     cluster = passMessage(cluster, 9, 21);
 %     cluster = passMessage(cluster, 21, 9);
 %     cluster = passMessage(cluster, 9, 27);
 %     cluster = passMessage(cluster, 27, 9);
-% 
+%
 % %     cluster = passMessage(cluster, 10, 19);
 %     cluster = passMessage(cluster, 19, 10);
 % %     cluster = passMessage(cluster, 10, 22);
 %     cluster = passMessage(cluster, 22, 10);
 % %     cluster = passMessage(cluster, 10, 27);
 %     cluster = passMessage(cluster, 27, 10);
-% 
-%     cluster = passMessage(cluster, 11, 19);    
+%
+%     cluster = passMessage(cluster, 11, 19);
 %     cluster = passMessage(cluster, 19, 11);
 %     cluster = passMessage(cluster, 11, 23);
 %     cluster = passMessage(cluster, 23, 11);
 %     cluster = passMessage(cluster, 11, 28);
 %     cluster = passMessage(cluster, 28, 11);
-% 
-%     cluster = passMessage(cluster, 12, 19);    
+%
+%     cluster = passMessage(cluster, 12, 19);
 %     cluster = passMessage(cluster, 19, 12);
 %     cluster = passMessage(cluster, 12, 24);
 %     cluster = passMessage(cluster, 24, 12);
 %     cluster = passMessage(cluster, 12, 28);
 %     cluster = passMessage(cluster, 28, 12);
-% 
-%     cluster = passMessage(cluster, 13, 20);    
+%
+%     cluster = passMessage(cluster, 13, 20);
 %     cluster = passMessage(cluster, 20, 13);
 %     cluster = passMessage(cluster, 13, 21);
 %     cluster = passMessage(cluster, 21, 13);
 %     cluster = passMessage(cluster, 13, 27);
 %     cluster = passMessage(cluster, 27, 13);
-% 
-%     cluster = passMessage(cluster, 14, 20);    
+%
+%     cluster = passMessage(cluster, 14, 20);
 %     cluster = passMessage(cluster, 20, 14);
 %     cluster = passMessage(cluster, 14, 22);
 %     cluster = passMessage(cluster, 22, 14);
 %     cluster = passMessage(cluster, 14, 27);
 %     cluster = passMessage(cluster, 27, 14);
-% 
-% %     cluster = passMessage(cluster, 15, 20);    
+%
+% %     cluster = passMessage(cluster, 15, 20);
 %     cluster = passMessage(cluster, 20, 15);
 % %     cluster = passMessage(cluster, 15, 23);
 %     cluster = passMessage(cluster, 23, 15);
 % %     cluster = passMessage(cluster, 15, 28);
 %     cluster = passMessage(cluster, 28, 15);
-% 
-%     cluster = passMessage(cluster, 16, 20);    
+%
+%     cluster = passMessage(cluster, 16, 20);
 %     cluster = passMessage(cluster, 20, 16);
 %     cluster = passMessage(cluster, 16, 24);
 %     cluster = passMessage(cluster, 24, 16);
 %     cluster = passMessage(cluster, 16, 28);
 %     cluster = passMessage(cluster, 28, 16);
-    
+
     % Koller Slide 8.1.9: Compute beliefs
     cluster = calculateBeliefs(cluster);
     sepsetBeliefs = calculateSepsetBeliefs(cluster);
-    
+
     % check for Kullback Leibler distance convergence %
     change = sumSepsetKLChange(prevSepsetBeliefs, sepsetBeliefs);
     sumSepsetChanges = [sumSepsetChanges, change];
@@ -304,7 +304,7 @@ for i = v1:v16
     [tmp0, tmp1] = maxpot(cluster(i).belief, [], 0);
     s(i) = tmp1(1);
     b(i) = tmp0.table;
-end;  
+end;
 
 clc;
 fprintf('| %d (%f) | %d (%f) | %d (%f) | %d (%f) |\n', s(1), b(1), s(2), b(2), s(3), b(3), s(4), b(4));
@@ -319,5 +319,5 @@ end;
 % Plot sepset beliefs sum %
 plot(1:length(sumSepsetChanges), sumSepsetChanges);
 xlabel('Iterations');
-ylabel('Sum(distance) in sepset beliefs');
+ylabel('Sum(KL distance) in sepset beliefs');
 grid on;

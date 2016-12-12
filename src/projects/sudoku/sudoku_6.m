@@ -68,7 +68,7 @@ for x1 = one:six
                             for fc = fc1:fc18
                                 pot(fc).table(x1, x2, x3, x4, x5, x6) = 0;
                             end;
-                        end;                        
+                        end;
                     end;
                 end;
             end;
@@ -97,7 +97,7 @@ for fr = fr1:fr36
 end;
 fprintf('Received factor potentials set up...\n');
 
-% Setup the evidence % 
+% Setup the evidence %
 evidence_cells = [1, 2, 11, 18, 22, 24, 27, 28, 32, 33, 34];
 pot(fr1) = setpot(pot(fr1), r1, four);
 pot(fr2) = setpot(pot(fr2), r2, five);
@@ -145,18 +145,19 @@ fprintf('Sudoku starting conditions set up...\n');
 fr = 19;
 for c = 1:36
    for p = 1:18
-      if ismember(c, pot(p).variables)  
+      if ismember(c, pot(p).variables)
          cluster(c).pot = pot(fr);
-         cluster(c).sepset{p + 36} = c; 
+         cluster(c).sepset{p + 36} = c;
       end;
    end;
    fr = fr + 1;
 end;
+
 fprintf('Cluster assignment for horizontal and vertical factors set up...\n');
 
 % cluster assignment for all cells involving brick rules %
 for p = 1:18
-   cluster(p + 36).pot = pot(p); 
+   cluster(p + 36).pot = pot(p);
 end;
 fprintf('Cluster assignment for brick factors set up...\n');
 
@@ -205,11 +206,11 @@ for k = 1:MAX_ITER
           end;
        end;
     end;
-    
+
     % Koller Slide 8.1.9: Compute beliefs
     cluster = calculateBeliefs(cluster);
     sepsetBeliefs = calculateSepsetBeliefs(cluster);
-    
+
 fprintf('\n\n');
 
 % Decode by looking at max beliefs %
@@ -219,7 +220,7 @@ for i = v1:v36
     [tmp0, tmp1] = maxpot(cluster(i).belief, [], 0);
     s(i) = tmp1(1);
     b(i) = tmp0.table;
-end;  
+end;
 
 clc;
 fprintf('-------------------------------------------------------------------------\n');
@@ -236,12 +237,12 @@ fprintf('-----------------------------------------------------------------------
 fprintf('| %d (%.3f) | %d (%.3f) | %d (%.3f) | %d (%.3f) | %d (%.3f) | %d (%.3f) |\n', s(31), b(31), s(32), b(32), s(33), b(33), s(34), b(34), s(35), b(35), s(36), b(36));
 fprintf('-------------------------------------------------------------------------\n');
 fprintf('iteration: %d\n', k);
-pause(0.1);
+pause(0.0001);
 
 % Plot sepset beliefs sum %
 plot(1:length(sumSepsetChanges), sumSepsetChanges, '-*');
 xlabel('Iterations');
-ylabel('Sum(distance) in sepset beliefs');
+ylabel('Sum(KL distance) in sepset beliefs');
 grid on;
 
     % check for distance convergence %
