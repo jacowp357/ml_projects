@@ -10,6 +10,8 @@ import theano.tensor as T
 from collections import OrderedDict
 
 
+# TODO: add math equations under each function #
+
 def nesterov_accelerated_gradient(cost, params, learning_rate, momentum):
     # nesterov’s accelerated gradient #
     assert momentum < 1 and momentum >= 0.0

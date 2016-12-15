@@ -98,43 +98,84 @@ end;
 fprintf('Received factor potentials set up...\n');
 
 % Setup the evidence %
-evidence_cells = [1, 2, 11, 18, 22, 24, 27, 28, 32, 33, 34];
-pot(fr1) = setpot(pot(fr1), r1, four);
-pot(fr2) = setpot(pot(fr2), r2, five);
-%pot(fr3) = setpot(pot(fr3), r3, one);
+% Easy problem %
+% evidence_cells = [5, 6, 8, 9, 10, 13, 14, 16, 17, 18, 21, 22, 23, 24, 25, 26, 27, 28, 29, 31, 32, 36];
+% %pot(fr1) = setpot(pot(fr1), r1, four);
+% %pot(fr2) = setpot(pot(fr2), r2, five);
+% %pot(fr3) = setpot(pot(fr3), r3, one);
+% %pot(fr4) = setpot(pot(fr4), r4, four);
+% pot(fr5) = setpot(pot(fr5), r5, three);
+% pot(fr6) = setpot(pot(fr6), r6, four);
+% %pot(fr7) = setpot(pot(fr7), r7, one);
+% pot(fr8) = setpot(pot(fr8), r8, four);
+% pot(fr9) = setpot(pot(fr9), r9, six);
+% pot(fr10) = setpot(pot(fr10), r10, one);
+% %pot(fr11) = setpot(pot(fr11), r11, three);
+% %pot(fr12) = setpot(pot(fr12), r12, one);
+% pot(fr13) = setpot(pot(fr13), r13, one);
+% pot(fr14) = setpot(pot(fr14), r14, six);
+% %pot(fr15) = setpot(pot(fr15), r15, two);
+% pot(fr16) = setpot(pot(fr16), r16, five);
+% pot(fr17) = setpot(pot(fr17), r17, four);
+% pot(fr18) = setpot(pot(fr18), r18, three);
+% %pot(fr19) = setpot(pot(fr19), r19, three);
+% %pot(fr20) = setpot(pot(fr20), r20, four);
+% pot(fr21) = setpot(pot(fr21), r21, three);
+% pot(fr22) = setpot(pot(fr22), r22, two);
+% pot(fr23) = setpot(pot(fr23), r23, one);
+% pot(fr24) = setpot(pot(fr24), r24, six);
+% pot(fr25) = setpot(pot(fr25), r25, six);
+% pot(fr26) = setpot(pot(fr26), r26, two);
+% pot(fr27) = setpot(pot(fr27), r27, four);
+% pot(fr28) = setpot(pot(fr28), r28, three);
+% pot(fr29) = setpot(pot(fr29), r29, five);
+% %pot(fr30) = setpot(pot(fr30), r30, two);
+% pot(fr31) = setpot(pot(fr31), r31, five);
+% pot(fr32) = setpot(pot(fr32), r32, three);
+% %pot(fr33) = setpot(pot(fr33), r33, five);
+% %pot(fr34) = setpot(pot(fr34), r34, one);
+% %pot(fr35) = setpot(pot(fr35), r35, five);
+% pot(fr36) = setpot(pot(fr36), r36, two);
+
+% Hard problem %
+evidence_cells = [3, 5, 8, 10, 11, 13, 21, 23, 26, 27, 32, 34, 35, 36];
+%pot(fr1) = setpot(pot(fr1), r1, four);
+%pot(fr2) = setpot(pot(fr2), r2, five);
+pot(fr3) = setpot(pot(fr3), r3, six);
 %pot(fr4) = setpot(pot(fr4), r4, four);
-%pot(fr5) = setpot(pot(fr5), r5, one);
-%pot(fr6) = setpot(pot(fr6), r6, one);
+pot(fr5) = setpot(pot(fr5), r5, five);
+%pot(fr6) = setpot(pot(fr6), r6, four);
 %pot(fr7) = setpot(pot(fr7), r7, one);
-%pot(fr8) = setpot(pot(fr8), r8, six);
-%pot(fr9) = setpot(pot(fr9), r9, one);
-%pot(fr10) = setpot(pot(fr10), r10, five);
-pot(fr11) = setpot(pot(fr11), r11, three);
+pot(fr8) = setpot(pot(fr8), r8, one);
+%pot(fr9) = setpot(pot(fr9), r9, six);
+pot(fr10) = setpot(pot(fr10), r10, three);
+pot(fr11) = setpot(pot(fr11), r11, six);
 %pot(fr12) = setpot(pot(fr12), r12, one);
-%pot(fr13) = setpot(pot(fr13), r13, six);
+pot(fr13) = setpot(pot(fr13), r13, four);
 %pot(fr14) = setpot(pot(fr14), r14, six);
 %pot(fr15) = setpot(pot(fr15), r15, two);
-%pot(fr16) = setpot(pot(fr16), r16, three);
-%pot(fr17) = setpot(pot(fr17), r17, one);
-pot(fr18) = setpot(pot(fr18), r18, six);
+%pot(fr16) = setpot(pot(fr16), r16, five);
+%pot(fr17) = setpot(pot(fr17), r17, four);
+%pot(fr18) = setpot(pot(fr18), r18, three);
 %pot(fr19) = setpot(pot(fr19), r19, three);
 %pot(fr20) = setpot(pot(fr20), r20, four);
-%pot(fr21) = setpot(pot(fr21), r21, two);
-pot(fr22) = setpot(pot(fr22), r22, three);
-%pot(fr23) = setpot(pot(fr23), r23, six);
-pot(fr24) = setpot(pot(fr24), r24, two);
-%pot(fr25) = setpot(pot(fr25), r25, one);
-%pot(fr26) = setpot(pot(fr26), r26, one);
-pot(fr27) = setpot(pot(fr27), r27, one);
-pot(fr28) = setpot(pot(fr28), r28, six);
-%pot(fr29) = setpot(pot(fr29), r29, five);
+pot(fr21) = setpot(pot(fr21), r21, three);
+%pot(fr22) = setpot(pot(fr22), r22, two);
+pot(fr23) = setpot(pot(fr23), r23, two);
+% pot(fr24) = setpot(pot(fr24), r24, six);
+% pot(fr25) = setpot(pot(fr25), r25, six);
+pot(fr26) = setpot(pot(fr26), r26, five);
+pot(fr27) = setpot(pot(fr27), r27, four);
+% pot(fr28) = setpot(pot(fr28), r28, three);
+% pot(fr29) = setpot(pot(fr29), r29, five);
 %pot(fr30) = setpot(pot(fr30), r30, two);
-%pot(fr31) = setpot(pot(fr31), r31, three);
-pot(fr32) = setpot(pot(fr32), r32, six);
-pot(fr33) = setpot(pot(fr33), r33, five);
-pot(fr34) = setpot(pot(fr34), r34, one);
-%pot(fr35) = setpot(pot(fr35), r35, five);
-%pot(fr36) = setpot(pot(fr36), r36, one);
+% pot(fr31) = setpot(pot(fr31), r31, five);
+pot(fr32) = setpot(pot(fr32), r32, three);
+%pot(fr33) = setpot(pot(fr33), r33, five);
+pot(fr34) = setpot(pot(fr34), r34, five);
+pot(fr35) = setpot(pot(fr35), r35, four);
+pot(fr36) = setpot(pot(fr36), r36, two);
+
 fprintf('Sudoku starting conditions set up...\n');
 
 % Setup the cluster graph %
@@ -237,13 +278,13 @@ fprintf('-----------------------------------------------------------------------
 fprintf('| %d (%.3f) | %d (%.3f) | %d (%.3f) | %d (%.3f) | %d (%.3f) | %d (%.3f) |\n', s(31), b(31), s(32), b(32), s(33), b(33), s(34), b(34), s(35), b(35), s(36), b(36));
 fprintf('-------------------------------------------------------------------------\n');
 fprintf('iteration: %d\n', k);
-pause(0.0001);
+% pause(0.0001);
 
 % Plot sepset beliefs sum %
-plot(1:length(sumSepsetChanges), sumSepsetChanges, '-*');
-xlabel('Iterations');
-ylabel('Sum(KL distance) in sepset beliefs');
-grid on;
+% plot(1:length(sumSepsetChanges), sumSepsetChanges, '-*');
+% xlabel('Iterations');
+% ylabel('Sum(KL distance) in sepset beliefs');
+% grid on;
 
     % check for distance convergence %
     change = sumSepsetKLChange(prevSepsetBeliefs, sepsetBeliefs);

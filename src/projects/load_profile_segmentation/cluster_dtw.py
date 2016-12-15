@@ -15,7 +15,6 @@ import collections
 from sklearn import decomposition
 from sklearn.cluster import KMeans
 from mpl_toolkits.mplot3d import Axes3D
-import time
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from matplotlib.text import Text
