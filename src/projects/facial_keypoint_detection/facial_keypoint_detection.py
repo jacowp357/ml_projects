@@ -103,7 +103,7 @@ def train_mlp_model(dataset, model_name, model=None, learning_rate=0, momentum=0
     datasets, num_features, num_outputs = convert_data_theano(dataset)
     train_set_x, train_set_y = datasets[0]
     cros_set_x, cros_set_y = datasets[1]
-    # test_img = np.asmatrix(load(file_test, test=True))
+    test_img = np.asmatrix(load(file_test, test=True))
     # test_set_x, test_set_y = datasets[2]
 
     print('build the model...')
@@ -156,7 +156,11 @@ def train_mlp_model(dataset, model_name, model=None, learning_rate=0, momentum=0
         with open(model_name, "wb") as f:
             for obj in [regressor, tr_error, cv_error]:
                 cPickle.dump(obj, f, protocol=cPickle.HIGHEST_PROTOCOL)
-        # plot_predictions(test_img, pickle.load(open(model_name, "rb"))[0], 4, run_time=True)
+        # loaded_obj = []
+        # with open(model_name, "rb") as f:
+        #     for i in range(3):
+        #         loaded_obj.append(cPickle.load(f))
+        # plot_predictions(test_img, loaded_obj[0], 4, run_time=True)
     end_time = timeit.default_timer()
     print(('The code ran for %.2fm' % ((end_time - start_time) / 60.)))
 
@@ -173,7 +177,7 @@ def plot_predictions(data, model, img_num, run_time=None):
         img = data[i].reshape(96, 96)
         ax.imshow(img, cmap='gray')
         pred_y = predict_model_n(np.asmatrix(data[i]))[0]
-        ax.scatter(pred_y[0::2] * 48 + 48, pred_y[1::2] * 48 + 48, linewidth=2, marker='+', color='magenta', s=20)
+        ax.scatter(pred_y[0::2] * 48 + 48, pred_y[1::2] * 48 + 48, linewidth=2, marker='*', color='magenta', s=30)
         plt.xlim([0, 96])
         plt.ylim([96, 0])
     if run_time:
@@ -229,3 +233,5 @@ if __name__ == '__main__':
     # X = load(file_test, test=True)
     # X = X[np.random.permutation(len(X))]
     # plot_predictions(X, loaded_obj[0], 4, run_time=False)
+
+    # TODO: explore convolutional nets and RBM #
