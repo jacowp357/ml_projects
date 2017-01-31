@@ -89,8 +89,10 @@ class MLP(object):
         # two norms along with sum of squares loss function (output of linear regression layer) #
         # self.L1 = abs(self.linRegressionLayer.W).sum()
         # self.L2 = (self.linRegressionLayer.W ** 2).sum()
+
         self.L1 = abs(self.hiddenLayer.W).sum() + abs(self.linRegressionLayer.W).sum()
         self.L2 = (self.hiddenLayer.W ** 2).sum() + (self.linRegressionLayer.W ** 2).sum()
+
         self.mean_squared_errors = self.linRegressionLayer.mean_squared_errors
         self.y_pred = self.linRegressionLayer.y_pred
         self.params = self.hiddenLayer.params + self.linRegressionLayer.params
@@ -156,10 +158,11 @@ def train_mlp_model(dataset, model_name, model=None, learning_rate=0, momentum=0
         with open(model_name, "wb") as f:
             for obj in [regressor, tr_error, cv_error]:
                 cPickle.dump(obj, f, protocol=cPickle.HIGHEST_PROTOCOL)
-        # loaded_obj = []
-        # with open(model_name, "rb") as f:
-        #     for i in range(3):
-        #         loaded_obj.append(cPickle.load(f))
+        loaded_obj = []
+        with open(model_name, "rb") as f:
+            for i in range(3):
+                loaded_obj.append(cPickle.load(f))
+        plot_predictions(my_photo, loaded_obj[0], 1, run_time=True)
         # plot_predictions(test_img, loaded_obj[0], 4, run_time=True)
     end_time = timeit.default_timer()
     print(('The code ran for %.2fm' % ((end_time - start_time) / 60.)))
@@ -177,7 +180,7 @@ def plot_predictions(data, model, img_num, run_time=None):
         img = data[i].reshape(96, 96)
         ax.imshow(img, cmap='gray')
         pred_y = predict_model_n(np.asmatrix(data[i]))[0]
-        ax.scatter(pred_y[0::2] * 48 + 48, pred_y[1::2] * 48 + 48, linewidth=2, marker='*', color='magenta', s=30)
+        ax.scatter(pred_y[0::2] * 48 + 48, pred_y[1::2] * 48 + 48, linewidth=2, marker='o', color='#4df909', s=30)
         plt.xlim([0, 96])
         plt.ylim([96, 0])
     if run_time:
@@ -199,6 +202,11 @@ def plot_performance(tr_error, cv_error, method):
 
 
 if __name__ == '__main__':
+    import matplotlib.image as img
+    my_photo = "data/photo.jpg"
+    image = img.imread(my_photo)
+    my_photo = (image / 255.).reshape(1, 9216)
+
     file_test = 'data/test.csv'
     file_train = 'data/training.csv'
     # X, Y = load(file_train)
@@ -207,7 +215,7 @@ if __name__ == '__main__':
     # keep random seed for now #
     # train_set_x, test_set_x, train_set_y, test_set_y = train_test_split(X, Y, test_size=0.2, random_state=0)
     # test_set_x, cros_set_x, test_set_y, cros_set_y = train_test_split(test_set_x, test_set_y, test_size=0.5, random_state=0)
-    train_set_x, cros_set_x, train_set_y, cros_set_y = train_test_split(X, Y, test_size=0.45, random_state=None)
+    train_set_x, cros_set_x, train_set_y, cros_set_y = train_test_split(X, Y, test_size=0.25, random_state=None)
 
     print('Train set: X dim %s, Y dim %s' % (str(train_set_x.shape), str(train_set_y.shape)))
     print('Cross set: X dim %s, Y dim %s' % (str(cros_set_x.shape), str(cros_set_y.shape)))
