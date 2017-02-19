@@ -19,8 +19,8 @@ import pickle
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.cross_validation import train_test_split
-import models.mlp_regression as mlp
-import models.gradient_optimisation as gradopt
+import models.theano.mlp_regression as mlp
+import models.theano.gradient_optimisation as gradopt
 plt.style.use('ggplot')
 
 

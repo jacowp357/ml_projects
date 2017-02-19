@@ -19,8 +19,8 @@ import pickle
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.cross_validation import train_test_split
-import models.mlp_regression as mlp
-import models.gradient_optimisation as gradopt
+import models.theano.mlp_regression as mlp
+import models.theano.gradient_optimisation as gradopt
 plt.style.use('ggplot')
 
 
@@ -162,8 +162,8 @@ def train_mlp_model(dataset, model_name, model=None, learning_rate=0, momentum=0
         with open(model_name, "rb") as f:
             for i in range(3):
                 loaded_obj.append(cPickle.load(f))
-        plot_predictions(my_photo, loaded_obj[0], 1, run_time=True)
-        # plot_predictions(test_img, loaded_obj[0], 4, run_time=True)
+        # plot_predictions(my_photo, loaded_obj[0], 1, run_time=True)
+        plot_predictions(test_img, loaded_obj[0], 4, run_time=True)
     end_time = timeit.default_timer()
     print(('The code ran for %.2fm' % ((end_time - start_time) / 60.)))
 
