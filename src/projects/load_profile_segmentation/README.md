@@ -1,6 +1,6 @@
-Daily Energy  Load Profile Segmentation
-=======================================
+Daily energy load profile segmentation
+======================================
 
 
-Documentation and usage
-=======================
+Usage
+=====
