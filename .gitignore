@@ -11,9 +11,7 @@
 *.out
 *.toc
 *.dll
-*.csv
 *.mat
-*.zip
 *.p
 *.DS_Store
 *.kml
