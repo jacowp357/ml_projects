@@ -20,23 +20,27 @@ def gen_data(mu_list, sigma_list, samples):
 
 
 if __name__ == '__main__':
+    # remove scientific notation #
     np.set_printoptions(suppress=True)
+
+    # set mean and std parameters #
     mu = [-1, 2.5, 5.5]
-    sigma = [0.89, 0.5, 0.5]
+    sigma = [0.89, 0.5, 0.7]
     samples = 1000
 
+    # generate the data #
     data = gen_data(mu, sigma, samples)
 
     # plot actual data (vertical lines) #
     for i in data:
-        plt.axvline(x=i, color='k', alpha=0.05)
+        plt.axvline(x=i, color='k', alpha=0.02)
 
     # fit a GMM with N components #
     N = 5
     gmix = mixture.GaussianMixture(n_components=N, init_params='kmeans', covariance_type='full', random_state=None, verbose=1, verbose_interval=1)
     gmix.fit(data.reshape(-1, 1))
 
-    # Model information #
+    # print model information #
     print('EM algorithm converged: {} in {} EM iterations.'.format(gmix.converged_, gmix.n_iter_))
     print('Means: {}, covariances: {}'.format(gmix.means_.reshape(1, N)[0], gmix.covariances_.reshape(1, N)[0]))
     print('Precisions: {}'.format(gmix.precisions_.reshape(1, N)[0]))
@@ -49,26 +53,27 @@ if __name__ == '__main__':
     #     plt.axvline(i[0], color='r', alpha=0.05)
     # plt.show()
 
-    # plot sample distribution #
+    # plot sample distributions #
     x = np.linspace(-5, 10, 1000)
     for m, s in zip(mu, sigma):
-        plt.plot(x, mlab.normpdf(x, m, s), '-.g')
+        plt.plot(x, mlab.normpdf(x, m, s), linestyle='--', color='r', label='Sampled from Normal pdf')
     # plt.show()
 
-    # predict probability and label of new data point #
+    # predict probability and label of a new data-point #
     new_data = 5.5
     print('Predict the labels for the data sample: {}'.format(gmix.predict(new_data)[0]))
     print('Predict the posterior probability for the data sample: {}'.format(gmix.predict_proba(new_data)[0]))
 
-    # compute the per-sample average log-likelihood and probability of the given data #
+    # compute the per-sample average log-likelihood and probability of the new data-point #
     print('Average log-likelihood for the data sample: {}'.format(gmix.score(new_data)))
     print('Probability for the data sample: {}'.format(np.exp(gmix.score(new_data))))
 
-    # plot GMM pdf #
-    # because gmm.score_samples gives log probability use exp instead #
-    plt.plot(x, np.exp(gmix.score_samples(x.reshape(-1, 1))), linewidth=2, color='b')
-
     # plot Gaussian fits #
     for i in range(N):
-        plt.plot(x, mlab.normpdf(x, gmix.means_[i][0], np.sqrt((gmix.covariances_[i][0][0]))), '--r')
+        plt.plot(x, mlab.normpdf(x, gmix.means_[i][0], np.sqrt((gmix.covariances_[i][0][0]))), label='GMM component_{}'.format(i + 1))
+
+    # plot GMM pdf #
+    # because gmm.score_samples gives log probability use exp instead #
+    plt.plot(x, np.exp(gmix.score_samples(x.reshape(-1, 1))), linewidth=1.5, color='#2370ed', label='GMM model pdf')
+    plt.legend()
     plt.show()
