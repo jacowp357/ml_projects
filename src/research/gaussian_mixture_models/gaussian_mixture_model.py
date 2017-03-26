@@ -35,17 +35,17 @@ if __name__ == '__main__':
     for i in data:
         plt.axvline(x=i, color='k', alpha=0.02)
 
-    # fit a GMM with N components #
-    N = 5
-    gmix = mixture.GaussianMixture(n_components=N, init_params='kmeans', covariance_type='full', random_state=None, verbose=1, verbose_interval=1)
+    # fit a GMM with k components #
+    k = 1
+    gmix = mixture.GaussianMixture(n_components=k, init_params='kmeans', covariance_type='full', random_state=None, verbose=1, verbose_interval=1)
     gmix.fit(data.reshape(-1, 1))
 
     # print model information #
     print('EM algorithm converged: {} in {} EM iterations.'.format(gmix.converged_, gmix.n_iter_))
-    print('Means: {}, covariances: {}'.format(gmix.means_.reshape(1, N)[0], gmix.covariances_.reshape(1, N)[0]))
-    print('Precisions: {}'.format(gmix.precisions_.reshape(1, N)[0]))
+    print('Means: {}, covariances: {}'.format(gmix.means_.reshape(1, k)[0], gmix.covariances_.reshape(1, k)[0]))
+    print('Precisions: {}'.format(gmix.precisions_.reshape(1, k)[0]))
     print('Log-likelihood of the best fit of EM: {}'.format(gmix.lower_bound_))
-    print('The weights of each GMM component: {}'.format(gmix.weights_.reshape(1, N)[0]))
+    print('The weights of each GMM component: {}'.format(gmix.weights_.reshape(1, k)[0]))
 
     # # generate and plot data from the GMM model #
     # samples = 1000
@@ -69,7 +69,7 @@ if __name__ == '__main__':
     print('Probability for the data sample: {}'.format(np.exp(gmix.score(new_data))))
 
     # plot Gaussian fits #
-    for i in range(N):
+    for i in range(k):
         plt.plot(x, mlab.normpdf(x, gmix.means_[i][0], np.sqrt((gmix.covariances_[i][0][0]))), label='GMM component_{}'.format(i + 1))
 
     # plot GMM pdf #
