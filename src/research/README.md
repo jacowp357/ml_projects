@@ -13,7 +13,9 @@ In this research, a GMM model will be used to discretize continuous variables, t
 Latent Dirichlet Allocation
 ===========================
 
-In standard mixture type models each data-point is assumed to have been generated from a single "cluster". In mixed membership type models a data-point may be a member of more than one "cluster". LDA models consider each data-point to be "explained" by more than one "cluster". The aim is to find common themes among the data assuming that any data-point could potentially contain multiple "overlapping" themes.
+In standard mixture type models each data-point is assumed to have been generated from a single "cluster". In mixed membership type models a data-point may be a member of more than one "cluster". LDA is a generative model that considers sets of data-points to be explained by multiple unobserved "clusters". The unobserved "clusters" contain parts of the data that are similar.
+
+The aim is to find common themes among the data assuming that any data-point could potentially contain multiple "overlapping" themes. These themes can be considered as hidden unobserved random variables forming part of a PGM framework.
 
 Probabilistic Graphical Model
 =============================
