@@ -36,7 +36,7 @@ if __name__ == '__main__':
         plt.axvline(x=i, color='k', alpha=0.02)
 
     # fit a GMM with k components #
-    k = 1
+    k = 3
     gmix = mixture.GaussianMixture(n_components=k, init_params='kmeans', covariance_type='full', random_state=None, verbose=1, verbose_interval=1)
     gmix.fit(data.reshape(-1, 1))
 
@@ -61,8 +61,8 @@ if __name__ == '__main__':
 
     # predict probability and label of a new data-point #
     new_data = 5.5
-    print('Predict the labels for the data sample: {}'.format(gmix.predict(new_data)[0]))
-    print('Predict the posterior probability for the data sample: {}'.format(gmix.predict_proba(new_data)[0]))
+    print('Predict the labels for the data sample {}: {}'.format(new_data, gmix.predict(new_data)[0]))
+    print('Predict the posterior probability for the data sample {}: {}'.format(new_data, gmix.predict_proba(new_data)[0]))
 
     # compute the per-sample average log-likelihood and probability of the new data-point #
     print('Average log-likelihood for the data sample: {}'.format(gmix.score(new_data)))
@@ -74,6 +74,6 @@ if __name__ == '__main__':
 
     # plot GMM pdf #
     # because gmm.score_samples gives log probability use exp instead #
-    plt.plot(x, np.exp(gmix.score_samples(x.reshape(-1, 1))), linewidth=1.5, color='#2370ed', label='GMM model pdf')
+    plt.plot(x, np.exp(gmix.score_samples(x.reshape(-1, 1))), linewidth=1.5, marker='x', color='#2370ed', label='GMM model pdf')
     plt.legend()
     plt.show()
