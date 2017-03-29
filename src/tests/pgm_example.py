@@ -6,12 +6,9 @@
 #               car evaluation data set in UCI: https://archive.ics.uci.edu/ml/datasets/Car+Evaluation.
 #
 import pandas as pd
+from sklearn.model_selection import train_test_split
 import graphviz as gv
 import numpy as np
-from libpgm.nodedata import NodeData
-from libpgm.graphskeleton import GraphSkeleton
-from libpgm.discretebayesiannetwork import DiscreteBayesianNetwork
-from libpgm.pgmlearner import PGMLearner
 from random import randint, sample
 from pgmpy.models import BayesianModel
 from pgmpy.inference import VariableElimination, BeliefPropagation
@@ -43,9 +40,11 @@ df = df.replace({"persons": persons_map})
 df = df.replace({"lug_boot": lug_boot_map})
 df = df.replace({"safety": safety_map})
 
-#######################
-# Structure learning  #
-#######################
+df_train, df_test = train_test_split(df, test_size = 0.2)
+
+######################
+# Structure learning #
+######################
 
 c = ConstraintBasedEstimator(df)
 model = c.estimate(significance_level=0.01)
@@ -70,10 +69,16 @@ g.render(filename='pgm')
 # Construct Bayes network #
 ###########################
 
-model = BayesianModel([('doors', 'class'), ('safety', 'class'), ('maint', 'class'), ('buying', 'class'), ('persons', 'class'), ('lug_boot', 'class')])
-model.fit(df[['safety', 'class', 'maint', 'buying', 'persons', 'lug_boot', 'doors']], estimator_type=MaximumLikelihoodEstimator)
+model = BayesianModel([('class', 'doors'),
+                       ('class', 'safety'),
+                       ('class', 'maint'),
+                       ('class', 'buying'),
+                       ('class', 'persons'), 
+                       ('class', 'lug_boot')])
 
-# can also use BP #
+model.fit(df_train, estimator_type=MaximumLikelihoodEstimator)
+
+# can also use Belief propagation #
 inference = VariableElimination(model)
 
 phi_query = inference.query(variables=['class'])
@@ -83,11 +88,26 @@ print(phi_query['class'])
 
 # print(model.edges())
 
+#####################
+# Predict test data #
+#####################
+
+# predict_data = df_test.copy()
+# predict_data.drop('class', axis=1, inplace=True)
+# # y_pred = model.predict(predict_data)
+
+# pred_values = []
+# for index, data_point in predict_data.iterrows():
+#     prob = inference.query(variables=['class'], evidence=data_point.to_dict())['class'].values
+#     state = inference.map_query(variables=['class'], evidence=data_point.to_dict())['class']
+#     pred_values.append(state)
+#     print(prob, state, df_test.ix[index, 'class'])
+
 #################################
 # Incorporate uncertainty/noise #
 #################################
 
-# convert to markov network #
+# convert to Markov network #
 model = model.to_markov_model()
 
 # can not be a factor graph since not all random variables are connected to factors #
@@ -136,13 +156,3 @@ phi_query = inference.query(variables=['class'])
 print(phi_query['class'])
 phi_query = inference.query(variables=['class'], evidence={'doors_received': 0})
 print(phi_query['class'])
-
-# # values = pd.DataFrame(np.random.randint(low=0, high=2, size=(1000, 5)), columns=['A', 'B', 'C', 'D', 'E'])
-# # train_data = values[:800]
-# # predict_data = values[800:]
-# # model = BayesianModel([('A', 'B'), ('C', 'B'), ('C', 'D'), ('B', 'E')])
-# # model.fit(values)
-# # predict_data = predict_data.copy()
-# # predict_data.drop('E', axis=1, inplace=True)
-# # y_pred = model.predict(predict_data)
-# # y_pred
