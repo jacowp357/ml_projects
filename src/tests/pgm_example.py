@@ -47,35 +47,24 @@ df = df.replace({"safety": safety_map})
 # Structure learning  #
 #######################
 
-# c = ConstraintBasedEstimator(df)
-# model = c.estimate()
-# print(model.edges())
-
-# column_names = df.columns.values
-
-# def rand_index(dframe, n_samples=10):
-#     rindex = np.array(sample(range(len(dframe)), n_samples if n_samples <= len(dframe) else len(dframe)))
-#     return [{i: list(j.values())[0] for i, j in dframe.iloc[[k]].to_dict().items()} for k in rindex]
-
-# data = rand_index(df, n_samples=len(df))
-# learner = PGMLearner()
-# result = learner.discrete_constraint_estimatestruct(data, pvalparam=0.05, indegree=1)
-# print(result.E)
+c = ConstraintBasedEstimator(df)
+model = c.estimate(significance_level=0.01)
 
 #######################
 # Graph visualisation #
 #######################
 
-# g1 = gv.Digraph(format='pdf')
+g = gv.Digraph(format='pdf')
+column_names = df.columns.values
 
-# var_dict = {}
-# for i in range(len(column_names)):
-#     var_dict.update({column_names[i]: i})
-#     g1.node(column_names[i])
+var_dict = {}
+for i in range(len(column_names)):
+    var_dict.update({column_names[i]: i})
+    g.node(column_names[i])
 
-# for item in result.E:
-#     g1.edge(item[0], item[1])
-# g1.render(filename='test')
+for item in model.edges():
+    g.edge(item[0], item[1])
+g.render(filename='pgm')
 
 ###########################
 # Construct Bayes network #
@@ -130,7 +119,7 @@ states = [mlab.normpdf(2, 2, std), mlab.normpdf(2, 3, std), mlab.normpdf(2, 4, s
 factor = DiscreteFactor(['doors', 'doors_received'], cardinality=[4, 4], values=states)
 
 # print(factor)
-# factor.reduce([('doors_recei', 0)])
+# factor.reduce([('doors_received', 0)])
 # factor.normalize()
 # print(factor)
 
