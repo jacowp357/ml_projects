@@ -19,6 +19,11 @@ from pgmpy.estimators import MaximumLikelihoodEstimator, BayesianEstimator, Base
 from pgmpy.factors.discrete import DiscreteFactor
 from pgmpy.factors.discrete import TabularCPD
 import matplotlib.mlab as mlab
+from pgmpy.estimators import ConstraintBasedEstimator
+
+###################
+# Data processing #
+###################
 
 df = pd.read_csv('data.csv', sep=',', engine='python', header='infer')
 
@@ -38,6 +43,14 @@ df = df.replace({"persons": persons_map})
 df = df.replace({"lug_boot": lug_boot_map})
 df = df.replace({"safety": safety_map})
 
+#######################
+# Structure learning  #
+#######################
+
+# c = ConstraintBasedEstimator(df)
+# model = c.estimate()
+# print(model.edges())
+
 # column_names = df.columns.values
 
 # def rand_index(dframe, n_samples=10):
@@ -48,6 +61,10 @@ df = df.replace({"safety": safety_map})
 # learner = PGMLearner()
 # result = learner.discrete_constraint_estimatestruct(data, pvalparam=0.05, indegree=1)
 # print(result.E)
+
+#######################
+# Graph visualisation #
+#######################
 
 # g1 = gv.Digraph(format='pdf')
 
@@ -60,22 +77,49 @@ df = df.replace({"safety": safety_map})
 #     g1.edge(item[0], item[1])
 # g1.render(filename='test')
 
+###########################
+# Construct Bayes network #
+###########################
+
 model = BayesianModel([('doors', 'class'), ('safety', 'class'), ('maint', 'class'), ('buying', 'class'), ('persons', 'class'), ('lug_boot', 'class')])
 model.fit(df[['safety', 'class', 'maint', 'buying', 'persons', 'lug_boot', 'doors']], estimator_type=MaximumLikelihoodEstimator)
 
+# can also use BP #
 inference = VariableElimination(model)
+
 phi_query = inference.query(variables=['class'])
 print(phi_query['class'])
 phi_query = inference.query(variables=['class'], evidence={'doors': 0})
 print(phi_query['class'])
 
-model = model.to_markov_model()
-# model = model.to_factor_graph()
-# model.check_model()
+# print(model.edges())
 
+#################################
+# Incorporate uncertainty/noise #
+#################################
+
+# convert to markov network #
+model = model.to_markov_model()
+
+# can not be a factor graph since not all random variables are connected to factors #
+# model = model.to_factor_graph()
+# print(model.check_model())
+
+# add the new received variable and connect#
 model.add_node('doors_received')
 model.add_edge('doors', 'doors_received')
 
+# binary symmetric channel noise #
+# n = 4
+# cpd = []
+# for x1 in range(n):
+#     for x2 in range(n):
+#         if x1 == x2:
+#             cpd.append(1)
+#         else:
+#             cpd.append(0)
+
+# Gaussian noise #
 std = 0.25
 states = [mlab.normpdf(2, 2, std), mlab.normpdf(2, 3, std), mlab.normpdf(2, 4, std), mlab.normpdf(2, 5, std),
           mlab.normpdf(2, 3, std), mlab.normpdf(3, 3, std), mlab.normpdf(4, 3, std), mlab.normpdf(5, 3, std), 
@@ -86,47 +130,24 @@ states = [mlab.normpdf(2, 2, std), mlab.normpdf(2, 3, std), mlab.normpdf(2, 4, s
 factor = DiscreteFactor(['doors', 'doors_received'], cardinality=[4, 4], values=states)
 
 # print(factor)
-# factor.reduce([('doors_received', 0)])
+# factor.reduce([('doors_recei', 0)])
 # factor.normalize()
+# print(factor)
 
+# add the factor to the network #
 model.add_factors(factor)
 
 # print(model.nodes())
 # print(model.edges())
 
+# can also use VE #
 inference = BeliefPropagation(model)
-# # phi_query = inference.query(variables=['doors'])
-# # print(phi_query['doors'])
-# # phi_query = inference.query(variables=['doors'], evidence={'doors_received': 0})
-# # print(phi_query['doors'])
 
 phi_query = inference.query(variables=['class'])
 print(phi_query['class'])
 phi_query = inference.query(variables=['class'], evidence={'doors_received': 0})
 print(phi_query['class'])
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# # import numpy as np
-# # import pandas as pd
-# # from pgmpy.models import BayesianModel
 # # values = pd.DataFrame(np.random.randint(low=0, high=2, size=(1000, 5)), columns=['A', 'B', 'C', 'D', 'E'])
 # # train_data = values[:800]
 # # predict_data = values[800:]
