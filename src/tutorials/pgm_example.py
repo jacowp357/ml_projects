@@ -2,8 +2,9 @@
 #
 # :Author: Jaco du Toit <jacowp357@gmail.com>
 # :Date: 28/03/2017
-# :Description: This code explores the libpgm and pgmpy packages in python for the
-#               car evaluation data set in UCI: https://archive.ics.uci.edu/ml/datasets/Car+Evaluation.
+# :Description: This code explores the pgmpy package in Python with application to
+#               the car evaluation data set available from UCI: 
+#               https://archive.ics.uci.edu/ml/datasets/Car+Evaluation.
 #
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -21,6 +22,20 @@ from pgmpy.estimators import ConstraintBasedEstimator
 ###################
 # Data processing #
 ###################
+
+"""
+Attribute Information:
+
+    - Class: unacc, acc, good, vgood 
+
+    - Attributes: 
+        - buying: vhigh, high, med, low. 
+        - maint: vhigh, high, med, low. 
+        - doors: 2, 3, 4, 5more. 
+        - persons: 2, 4, more. 
+        - lug_boot: small, med, big. 
+        - safety: low, med, high. 
+"""
 
 df = pd.read_csv('data.csv', sep=',', engine='python', header='infer')
 
