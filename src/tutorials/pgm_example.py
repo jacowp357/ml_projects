@@ -26,9 +26,12 @@ from pgmpy.estimators import ConstraintBasedEstimator
 """
 Attribute Information:
 
-    - Class: unacc, acc, good, vgood 
+    - Class: 
 
-    - Attributes: 
+        - unacc, acc, good, vgood 
+
+    - Attributes:
+
         - buying: vhigh, high, med, low. 
         - maint: vhigh, high, med, low. 
         - doors: 2, 3, 4, 5more. 
@@ -153,7 +156,7 @@ states = [mlab.normpdf(2, 2, std), mlab.normpdf(2, 3, std), mlab.normpdf(2, 4, s
 # p(doors_received|doors) - doors was original information, but we received a noisy version of it!
 factor = DiscreteFactor(['doors', 'doors_received'], cardinality=[4, 4], values=states)
 
-# print(factor)
+print(factor)
 # factor.reduce([('doors_received', 0)])
 # factor.normalize()
 # print(factor)
