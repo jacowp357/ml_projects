@@ -3,7 +3,7 @@
 # :Author: Jaco du Toit <jacowp357@gmail.com>
 # :Date: 28/03/2017
 # :Description: This code explores the pgmpy package in Python with application to
-#               the car evaluation data set available from UCI: 
+#               the car evaluation data set available from UCI:
 #               https://archive.ics.uci.edu/ml/datasets/Car+Evaluation.
 #
 import pandas as pd
@@ -29,18 +29,18 @@ import matplotlib.pyplot as plt
 """
 Attribute Information:
 
-    - Class: 
+    - Class:
 
-        - unacc, acc, good, vgood 
+        - unacc, acc, good, vgood
 
     - Attributes:
 
-        - buying: vhigh, high, med, low. 
-        - maint: vhigh, high, med, low. 
-        - doors: 2, 3, 4, 5more. 
-        - persons: 2, 4, more. 
-        - lug_boot: small, med, big. 
-        - safety: low, med, high. 
+        - buying: vhigh, high, med, low.
+        - maint: vhigh, high, med, low.
+        - doors: 2, 3, 4, 5more.
+        - persons: 2, 4, more.
+        - lug_boot: small, med, big.
+        - safety: low, med, high.
 """
 
 df = pd.read_csv('data.csv', sep=',', engine='python', header='infer')
@@ -61,7 +61,7 @@ df = df.replace({"persons": persons_map})
 df = df.replace({"lug_boot": lug_boot_map})
 df = df.replace({"safety": safety_map})
 
-df_train, df_test = train_test_split(df, test_size = 0.2, random_state=1)
+df_train, df_test = train_test_split(df, test_size=0.2, random_state=1)
 
 ######################
 # Structure learning #
@@ -91,16 +91,16 @@ df_train, df_test = train_test_split(df, test_size = 0.2, random_state=1)
 ###########################
 
 model1 = BayesianModel([('class', 'doors'),
-                       ('class', 'safety'),
-                       ('class', 'maint'),
-                       ('class', 'buying'),
-                       ('class', 'persons'), 
-                       ('class', 'lug_boot')])
+                        ('class', 'safety'),
+                        ('class', 'maint'),
+                        ('class', 'buying'),
+                        ('class', 'persons'),
+                        ('class', 'lug_boot')])
 
 model2 = BayesianModel([('safety', 'class'),
-                       ('maint', 'class'),
-                       ('persons', 'class'),
-                       ('buying', 'class')])
+                        ('maint', 'class'),
+                        ('persons', 'class'),
+                        ('buying', 'class')])
 
 model1.fit(df_train, estimator_type=MaximumLikelihoodEstimator)
 model2.fit(df_train, estimator_type=MaximumLikelihoodEstimator)
@@ -127,29 +127,32 @@ predict_data.drop(['class'], axis=1, inplace=True)
 
 pred_values = []
 for index, data_point in predict_data.iterrows():
-    prob_dist = inference1.query(variables=['class'], evidence=data_point.to_dict())['class'].values
+    prob_dist = inference1.query(
+        variables=['class'], evidence=data_point.to_dict())['class'].values
     pred_values.append(prob_dist)
 
-print('Classification accuracy: %0.3f' % accuracy_score(df_test['class'].values, [np.argmax(i) for i in pred_values]))
-print(confusion_matrix(df_test['class'].values, [np.argmax(i) for i in pred_values]))
-print(f1_score(df_test['class'].values, [np.argmax(i) for i in pred_values], average='micro'))
+print('Classification accuracy: %0.3f' % accuracy_score(
+    df_test['class'].values, [np.argmax(i) for i in pred_values]))
+print(confusion_matrix(df_test['class'].values,
+                       [np.argmax(i) for i in pred_values]))
+print(f1_score(df_test['class'].values, [np.argmax(i)
+                                         for i in pred_values], average='micro'))
 
 predict_data.drop(['doors', 'lug_boot'], axis=1, inplace=True)
 # y_pred = model.predict(predict_data)
 
 pred_values = []
 for index, data_point in predict_data.iterrows():
-    prob_dist = inference2.query(variables=['class'], evidence=data_point.to_dict())['class'].values
+    prob_dist = inference2.query(
+        variables=['class'], evidence=data_point.to_dict())['class'].values
     pred_values.append(prob_dist)
 
-print('Classification accuracy: %0.3f' % accuracy_score(df_test['class'].values, [np.argmax(i) for i in pred_values]))
-print(confusion_matrix(df_test['class'].values, [np.argmax(i) for i in pred_values]))
-print(f1_score(df_test['class'].values, [np.argmax(i) for i in pred_values], average='micro'))
-
-
-
-
-
+print('Classification accuracy: %0.3f' % accuracy_score(
+    df_test['class'].values, [np.argmax(i) for i in pred_values]))
+print(confusion_matrix(df_test['class'].values,
+                       [np.argmax(i) for i in pred_values]))
+print(f1_score(df_test['class'].values, [np.argmax(i)
+                                         for i in pred_values], average='micro'))
 
 
 # # y_test = label_binarize(df_test['class'].values, classes=[0, 1, 2, 3])
@@ -176,36 +179,6 @@ print(f1_score(df_test['class'].values, [np.argmax(i) for i in pred_values], ave
 # # plt.title('Receiver operating characteristic example')
 # # plt.legend(loc="lower right")
 # # plt.show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # print(model.edges())
@@ -238,12 +211,16 @@ model.add_edge('doors', 'doors_received')
 # Gaussian noise #
 std = 0.2
 states = [mlab.normpdf(2, 2, std), mlab.normpdf(2, 3, std), mlab.normpdf(2, 4, std), mlab.normpdf(2, 5, std),
-          mlab.normpdf(2, 3, std), mlab.normpdf(3, 3, std), mlab.normpdf(4, 3, std), mlab.normpdf(5, 3, std), 
-          mlab.normpdf(2, 4, std), mlab.normpdf(3, 4, std), mlab.normpdf(4, 4, std), mlab.normpdf(5, 4, std), 
+          mlab.normpdf(2, 3, std), mlab.normpdf(3, 3, std), mlab.normpdf(
+              4, 3, std), mlab.normpdf(5, 3, std),
+          mlab.normpdf(2, 4, std), mlab.normpdf(3, 4, std), mlab.normpdf(
+              4, 4, std), mlab.normpdf(5, 4, std),
           mlab.normpdf(2, 5, std), mlab.normpdf(3, 5, std), mlab.normpdf(4, 5, std), mlab.normpdf(5, 5, std)]
 
-# p(doors_received|doors) - doors was original information, but we received a noisy version of it!
-factor = DiscreteFactor(['doors', 'doors_received'], cardinality=[4, 4], values=cpd)
+# p(doors_received|doors) - doors was original information, but we
+# received a noisy version of it!
+factor = DiscreteFactor(['doors', 'doors_received'],
+                        cardinality=[4, 4], values=cpd)
 
 print(factor)
 # factor.reduce([('doors_received', 0)])
@@ -261,11 +238,6 @@ inference = BeliefPropagation(model)
 
 phi_query = inference.query(variables=['class'])
 print(phi_query['class'])
-phi_query = inference.query(variables=['class'], evidence={'doors_received': 0})
+phi_query = inference.query(
+    variables=['class'], evidence={'doors_received': 0})
 print(phi_query['class'])
-
-
-
-
-
-

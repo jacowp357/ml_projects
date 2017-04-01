@@ -12,7 +12,6 @@ Most of my projects work with `Python 3` or higher (generally I try to keep up w
 - `theano`
 - `tensorflow` 
 - `pgmpy`
-- `libpgm`
 
 Download
 ========
