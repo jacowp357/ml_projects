@@ -13,7 +13,8 @@ plt.style.use('ggplot')
 
 
 def gen_data(N):
-    """Codeword encoding (graph connections):
+    """
+    Codeword encoding (graph connections):
 
         b5 = [b1, b2, b3]
         b6 = [b2, b3, b4]
@@ -45,30 +46,43 @@ def gen_data(N):
 
 
 def shan_entropy(c):
-    c_normalized = c / float(np.sum(c))
-    c_normalized = c_normalized[np.nonzero(c_normalized)]
-    H = -sum(c_normalized * np.log2(c_normalized))
+    """
+    Shannon entropy is a way to estimate the average minimum number of bits needed
+    to encode a probability distribution (i.e., the uncertainty of a random variable).
+    It provides a lower bound for the compression that can be achieved by the data
+    representation compression step.
+    """
+    c_normalised = c / float(np.sum(c))
+    c_normalised = c_normalised[np.nonzero(c_normalised)]
+    # we use base 2 to interpret units as Shannon bits #
+    H = -sum(c_normalised * np.log2(c_normalised))
     return H
 
 
 def calc_MI(X, Y, bins):
-    if (X.shape[1] == 1) & (Y.shape[1] == 1):
-        c_XY = np.histogram2d(X[:, 0], Y[:, 0], bins)[0]
-        c_X = np.histogram(X[:, 0], bins)[0]
-        c_Y = np.histogram(Y[:, 0], bins)[0]
-    else:
-        c_XY = np.histogramdd(np.column_stack((X, Y)), bins=bins)[0]
-        c_X = np.histogramdd(X, bins)[0]
-        c_Y = np.histogramdd(Y, bins)[0]
+    """
+    Mutual information (MI) of two random variables is a measure of dependence between
+    two variables. It quantifies the "amount of information" (in units such as bits)
+    obtained from one random variable, through the other random variable. It determines
+    how similar the joint distribution p(X, Y) is to the product of its marginal
+    distributions p(X)p(Y).
+    """
+    # compute the multidimensional histogram of the data #
+    c_XY = np.histogramdd(np.column_stack((X, Y)), bins=bins)[0]
+    c_X = np.histogramdd(X, bins)[0]
+    c_Y = np.histogramdd(Y, bins)[0]
+    # average number of bits needed for X #
     H_X = shan_entropy(c_X)
+    # average number of bits needed for Y #
     H_Y = shan_entropy(c_Y)
+    # average number of bits needed for X, Y #
     H_XY = shan_entropy(c_XY)
+    # if average number of bits needed for H(X, Y) < H(X) + H(Y) then we have MI > 0 #
     MI = H_X + H_Y - H_XY
     return MI
 
 
 if __name__ == '__main__':
-    np.set_printoptions(linewidth=2000)
     df = pd.DataFrame(gen_data(10000), columns=['b1',
                                                 'b2',
                                                 'b3',
@@ -78,6 +92,7 @@ if __name__ == '__main__':
                                                 'b7'])
     A = df.as_matrix()
     bins = 2
+    # we can calculate pairwise MI #
     # n = 7
     # matMI = np.zeros((7, 7))
     # pairwise MI #
@@ -86,6 +101,7 @@ if __name__ == '__main__':
     #         matMI[ix, jx] = calc_MI(A[:, ix], A[:, jx], bins)
     # print(matMI)
 
+    # plot pairwise MI #
     # fig, ax = plt.subplots()
     # plt.pcolor(matMI, cmap=plt.cm.coolwarm, alpha=0.7)
     # ax.set_yticks(np.arange(matMI.shape[0]) + 0.5, minor=False)
@@ -98,8 +114,9 @@ if __name__ == '__main__':
     # plt.colorbar()
     # plt.show()
 
+    print("Test b5 factor:")
     print("Entropy b1, b2, b3:        H(X) = {}".format(shan_entropy(np.histogramdd(np.column_stack((A[:, 0], A[:, 1], A[:, 2])), bins=bins)[0])))
-    print("Entropy b5:                H(Y) = {}".format(shan_entropy(np.histogram(A[:, 4], bins=bins)[0])))
+    print("Entropy b5:                H(Y) = {}".format(shan_entropy(np.histogramdd(A[:, 4], bins=bins)[0])))
     print("Entropy b1, b2, b3, b5: H(X, Y) = {}\n".format(shan_entropy(np.histogramdd(np.column_stack((A[:, 0], A[:, 1], A[:, 2], A[:, 4])), bins=bins)[0])))
 
     # calc MI for all possible pairs of nodes #
