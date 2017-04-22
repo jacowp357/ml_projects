@@ -21,7 +21,7 @@ I provide links to where the data can be downloaded to run/test the models on th
 Usage
 =====
 
-For most of my project, the code can be executed by running the `.py` files (from within each project folder) from the command-line or from within Sublime. For the imports pointing to modules used in ml_projects to work, a Python path to the src directory should be added follows:
+For most of my project, the code can be executed by running the main `.py` files (from within each project folder) from the command-line or from within `Sublime Text`. For the imports pointing to modules used in ml_projects to work, a Python path to the src directory should be added follows:
 
 `PYTHONPATH=~/your_path_here/ml_projects/src`
 

@@ -22,3 +22,7 @@ Probabilistic Graphical Model
 
 What makes PGMs an attractive modelling tool is its ability to explicitly take into account uncertainty, which is expressed in a probabilistic framework. In many cases, it is useful to be able to infer some target random variable of interest given incomplete or noisy observations. It is particularly useful to be able to understand the underlying data (e.g., in a Bayes network) by studying the influence of observed random variables on other random variables within the constructs of a graph. Structure learning can be used to exploit the statistical relationships (dependencies or independencies) between random variables in a network to help construct a PGM model.
 
+Mutual Information
+==================
+
+Mutual information (MI), from the field of Information theory, is a quantitative measure of the dependence between random variables, or groups of random variables. It is useful in determining whether relationships exist between variables, and is far more capable than standard statistical approaches such as Pearson/Spearman correlation. More specifically, "high" MI between two random variables X and Y can be interpreted as: knowing X tells me something about Y and vice versa. MI is therefore the reduction in uncertainty in Y given that we observe X. Uncertainty in this context is determined by using the calculation of Shannon Entropy H. MI is calculated as follows: I(X;Y) = H(X) + H(Y) - H(X,Y) and is nonnegative (i.e. I(X;Y) ≥ 0) and symmetric (i.e. I(X;Y) = I(Y;X)).
