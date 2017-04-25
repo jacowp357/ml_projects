@@ -9,10 +9,12 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import itertools
+from itertools import combinations
+import matplotlib.mlab as mlab
 plt.style.use('ggplot')
 
 
-def gen_data(N):
+def gen_data(N, noisy=False, std=0.01):
     """
     Codeword encoding (graph connections):
 
@@ -42,7 +44,20 @@ def gen_data(N):
         else:
             b7 = 0
         data.append(list(m) + [b5, b6, b7])
-    return data
+
+    if noisy:
+        data_noisy = []
+        for i in data:
+            b_list = []
+            for j in i:
+                if j == 0:
+                    b_list.append(np.random.normal(0, std, 1)[0])
+                else:
+                    b_list.append(np.random.normal(1, std, 1)[0])
+            data_noisy.append(b_list)
+        return data_noisy
+    else:
+        return data
 
 
 def shan_entropy(c):
@@ -83,38 +98,46 @@ def calc_MI(X, Y, bins):
 
 
 if __name__ == '__main__':
-    df = pd.DataFrame(gen_data(10000), columns=['b1',
-                                                'b2',
-                                                'b3',
-                                                'b4',
-                                                'b5',
-                                                'b6',
-                                                'b7'])
+    """
+    Our goal is to understand whether x is independent of y. One way to determine this
+    is to use the empirical mutual information I(x;y). If I(x;y) = 0, then x and y are
+    independent. We can use the local empirical dependencies (known as the PC algorithm)
+    to learn/build a network structure of interacting random variables.
+    """
+    np.set_printoptions(linewidth=np.nan, suppress=True)
+    pd.set_option('display.max_rows', 10000)
+    df = pd.DataFrame(gen_data(10000, noisy=False, std=0.001), columns=['b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b7'])
     A = df.as_matrix()
-    bins = 2
-    # we can calculate pairwise MI #
-    # n = 7
-    # matMI = np.zeros((7, 7))
+
+    ###############
     # pairwise MI #
-    # for ix in np.arange(7):
-    #     for jx in np.arange(ix + 1, 7):
-    #         matMI[ix, jx] = calc_MI(A[:, ix], A[:, jx], bins)
-    # print(matMI)
+    ###############
+
+    bins = 2
+    n = 7
+    matMI = np.zeros((7, 7))
+
+    for ix in np.arange(7):
+        for jx in np.arange(ix + 1, 7):
+            # we can calculate pairwise MI between each pair of nodes #
+            matMI[ix, jx] = calc_MI(A[:, ix], A[:, jx], bins)
+    print("Pairwise MI:")
+    print(matMI)
 
     # plot pairwise MI #
-    # fig, ax = plt.subplots()
-    # plt.pcolor(matMI, cmap=plt.cm.coolwarm, alpha=0.7)
-    # ax.set_yticks(np.arange(matMI.shape[0]) + 0.5, minor=False)
-    # ax.set_xticks(np.arange(matMI.shape[1]) + 0.5, minor=False)
-    # ax.invert_yaxis()
-    # ax.xaxis.tick_top()
-    # labels = ['1', '2', '3', '4', '5', '6', '7']
-    # ax.set_xticklabels(labels, minor=False)
-    # ax.set_yticklabels(labels, minor=False)
-    # plt.colorbar()
-    # plt.show()
+    fig, ax = plt.subplots()
+    plt.pcolor(matMI, cmap=plt.cm.coolwarm, alpha=0.7)
+    ax.set_yticks(np.arange(matMI.shape[0]) + 0.5, minor=False)
+    ax.set_xticks(np.arange(matMI.shape[1]) + 0.5, minor=False)
+    ax.invert_yaxis()
+    ax.xaxis.tick_top()
+    labels = ['1', '2', '3', '4', '5', '6', '7']
+    ax.set_xticklabels(labels, minor=False)
+    ax.set_yticklabels(labels, minor=False)
+    plt.colorbar()
+    plt.show()
 
-    print("Test b5 factor:")
+    print("\nTest b5 ⊥ [b1, b2, b3]:")
     print("Entropy b1, b2, b3:        H(X) = {}".format(shan_entropy(np.histogramdd(np.column_stack((A[:, 0], A[:, 1], A[:, 2])), bins=bins)[0])))
     print("Entropy b5:                H(Y) = {}".format(shan_entropy(np.histogramdd(A[:, 4], bins=bins)[0])))
     print("Entropy b1, b2, b3, b5: H(X, Y) = {}\n".format(shan_entropy(np.histogramdd(np.column_stack((A[:, 0], A[:, 1], A[:, 2], A[:, 4])), bins=bins)[0])))
@@ -123,6 +146,7 @@ if __name__ == '__main__':
     nodes = {0: 'b1', 1: 'b2', 2: 'b3', 3: 'b4', 4: 'b5', 5: 'b6', 6: 'b7'}
 
     n = len(nodes)
+    mi = []
 
     for i in range(n):
         temp_nodes = nodes.copy()
@@ -139,4 +163,50 @@ if __name__ == '__main__':
         for j in range(len(df_temp)):
             # get column names that are true #
             b = list(df_temp.ix[j + 1, :][df_temp.ix[j + 1, :]].index.values)
-            print(nodes[i], b, calc_MI(df[[nodes[i]]].as_matrix(), df[b].as_matrix(), bins))
+            # print(nodes[i], b, calc_MI(df[[nodes[i]]].as_matrix(), df[b].as_matrix(), bins))
+            mi.append(("{} ⊥ {}|".format(nodes[i], str(b)), calc_MI(df[[nodes[i]]].as_matrix(), df[b].as_matrix(), bins)))
+
+    df_results = pd.DataFrame(mi, columns=['vars', 'mi'])
+    print(df_results.sort_values(by='mi', axis=0, ascending=False))
+
+    ##################################
+    # Conditional mutual information #
+    ##################################
+
+    # I(X;Y|Z) = I(X;Y,Z) − I(X;Z) #
+    # or equivalently: I(X;Y|Z) = H(X,Z) + H(Y,Z) − H(X,Y,Z) − H(Z) #
+    a = shan_entropy(np.histogramdd(df[['b1', 'b5']].as_matrix(), bins=bins)[0])
+    b = shan_entropy(np.histogramdd(df[['b2', 'b5']].as_matrix(), bins=bins)[0])
+    c = shan_entropy(np.histogramdd(df[['b1', 'b2', 'b5']].as_matrix(), bins=bins)[0])
+    d = shan_entropy(np.histogramdd(df[['b5']].as_matrix(), bins=bins)[0])
+
+    print("\nTest b1 ⊥ b2|b5:")
+    print("Entropy H(b1, b5) = {}".format(a))
+    print("Entropy H(b2, b5) = {}".format(b))
+    print("Entropy H(b1, b2, b5) = {}".format(c))
+    print("Entropy H(b5) = {}".format(d))
+    print("H(b1,b5) + H(b2,b5) − H(b1,b2,b5) − H(b5) = {} + {} - {} - {} = {}\n".format(a, b, c, d, a + b - c - d))
+
+    e = calc_MI(df[['b1']].as_matrix(), df[['b2', 'b5']].as_matrix(), bins)
+    f = calc_MI(df[['b1']].as_matrix(), df[['b5']].as_matrix(), bins)
+    print("I(b1;b2,b5) - I(b1;b5) = {} - {} = {}".format(e, f, e - f))
+
+    nodes = {0: 'b1', 1: 'b2', 2: 'b3', 3: 'b4', 4: 'b5', 5: 'b6', 6: 'b7'}
+
+    n = len(nodes)
+    mi = []
+
+    for i in range(n):
+        temp_nodes = nodes.copy()
+        # remove node of interest #
+        del temp_nodes[i]
+        # get remaining column names of interest #
+        col_names = list(temp_nodes.values())
+        edges = combinations(col_names, 2)
+        for j in list(edges):
+            e = calc_MI(df[[nodes[i]]].as_matrix(), df[list(j)].as_matrix(), bins)
+            f = calc_MI(df[[nodes[i]]].as_matrix(), df[[j[1]]].as_matrix(), bins)
+            mi.append(("{} ⊥ {}|{}".format(j[0], j[1], nodes[i]), e - f))
+
+    df_results = pd.DataFrame(mi, columns=['vars', 'mi'])
+    print(df_results.sort_values(by='mi', axis=0, ascending=False))

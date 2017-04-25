@@ -21,8 +21,6 @@ from pgmpy.factors.discrete import TabularCPD
 import matplotlib.mlab as mlab
 from pgmpy.estimators import ConstraintBasedEstimator
 import matplotlib.pyplot as plt
-from itertools import cycle
-from scipy import interp
 np.set_printoptions(suppress=True)
 
 ###################
@@ -110,61 +108,61 @@ model.fit(df_train, estimator=MaximumLikelihoodEstimator)
 inference = BeliefPropagation(model)
 
 print("Class variable prior:\n{}\n".format(inference.query(variables=['class'])['class']))
-print("Class variable posterior after certain observation:\n{}\n".format(inference.query(variables=['class'], evidence={'doors': 0, 'persons': 2})['class']))
+print("Class variable posterior after certain observation:\n{}\n".format(inference.query(variables=['class'], evidence={'doors': 0})['class']))
 
-# #####################
-# # Predict test data #
-# #####################
+#####################
+# Predict test data #
+#####################
 
-# predict_data = df_test.copy()
-# predict_data.drop(['class'], axis=1, inplace=True)
-# # y_pred = model.predict(predict_data)
+predict_data = df_test.copy()
+predict_data.drop(['class'], axis=1, inplace=True)
+# y_pred = model.predict(predict_data)
 
-# pred_values = []
-# for index, data_point in predict_data.iterrows():
-#     prob_dist = inference.query(variables=['class'], evidence=data_point.to_dict())['class'].values
-#     pred_values.append(prob_dist)
+pred_values = []
+for index, data_point in predict_data.iterrows():
+    prob_dist = inference.query(variables=['class'], evidence=data_point.to_dict())['class'].values
+    pred_values.append(prob_dist)
 
-# ####################
-# # Model evaluation #
-# ####################
+####################
+# Model evaluation #
+####################
 
-# print("Classification accuracy: {0:.3f}%".format(100 * accuracy_score(df_test['class'].values, [np.argmax(i) for i in pred_values])))
-# print("F1 score: {0:.3f}\n".format(f1_score(df_test['class'].values, [np.argmax(i) for i in pred_values], average='weighted')))
-# print("Confusion matrix:\n{}\n".format(confusion_matrix(df_test['class'].values, [np.argmax(i) for i in pred_values])))
+print("Classification accuracy: {0:.3f}%".format(100 * accuracy_score(df_test['class'].values, [np.argmax(i) for i in pred_values])))
+print("F1 score: {0:.3f}\n".format(f1_score(df_test['class'].values, [np.argmax(i) for i in pred_values], average='weighted')))
+print("Confusion matrix:\n{}\n".format(confusion_matrix(df_test['class'].values, [np.argmax(i) for i in pred_values])))
 
-# y_test = label_binarize(df_test['class'].values, classes=[0, 1, 2, 3])
-# pred_values = np.array(pred_values)
+y_test = label_binarize(df_test['class'].values, classes=[0, 1, 2, 3])
+pred_values = np.array(pred_values)
 
-# fpr = dict()
-# tpr = dict()
-# roc_auc = dict()
-# n_classes = 4
+fpr = dict()
+tpr = dict()
+roc_auc = dict()
+n_classes = 4
+for i in range(n_classes):
+    fpr[i], tpr[i], _ = roc_curve(y_test[:, i], pred_values[:, i])
+    roc_auc[i] = auc(fpr[i], tpr[i])
+
+# Compute micro-average (flattened) ROC curve and ROC area #
+fpr["micro"], tpr["micro"], _ = roc_curve(y_test.ravel(), pred_values.ravel())
+roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
+
+plt.figure(0)
+plt.plot(fpr["micro"], tpr["micro"], label="micro-average ROC curve (area = {0:0.3f})".format(roc_auc["micro"]))
+
 # for i in range(n_classes):
-#     fpr[i], tpr[i], _ = roc_curve(y_test[:, i], pred_values[:, i])
-#     roc_auc[i] = auc(fpr[i], tpr[i])
+#     plt.plot(fpr[i], tpr[i], label="ROC curve of class {0} (area = {1:0.2f})".format(i, roc_auc[i]))
 
-# # Compute micro-average (flattened) ROC curve and ROC area #
-# fpr["micro"], tpr["micro"], _ = roc_curve(y_test.ravel(), pred_values.ravel())
-# roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
+plt.plot([0, 1], [0, 1], 'k--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC curve')
+plt.legend(loc="lower right")
 
-# plt.figure(0)
-# plt.plot(fpr["micro"], tpr["micro"], label="micro-average ROC curve (area = {0:0.3f})".format(roc_auc["micro"]))
-
-# # for i in range(n_classes):
-# #     plt.plot(fpr[i], tpr[i], label="ROC curve of class {0} (area = {1:0.2f})".format(i, roc_auc[i]))
-
-# plt.plot([0, 1], [0, 1], 'k--')
-# plt.xlim([0.0, 1.0])
-# plt.ylim([0.0, 1.05])
-# plt.xlabel('False Positive Rate')
-# plt.ylabel('True Positive Rate')
-# plt.title('ROC curve')
-# plt.legend(loc="lower right")
-
-######################################################
-# Incorporate uncertainty/noise to a random variable #
-######################################################
+###############################################
+# Incorporate uncertainty to random variables #
+###############################################
 
 # convert to Markov network (undirected graph) #
 model = model.to_markov_model()
@@ -176,42 +174,68 @@ model = model.to_markov_model()
 # add the new received variable and connect #
 model.add_node('doors_received')
 model.add_node('persons_received')
-model.add_edges_from([('persons', 'persons_received'), ('doors', 'doors_received')])
+model.add_node('lug_boot_received')
+model.add_node('maint_received')
+model.add_node('safety_received')
+model.add_node('buying_received')
+model.add_edges_from([('persons', 'persons_received'),
+                      ('doors', 'doors_received'),
+                      ('buying', 'buying_received'),
+                      ('safety', 'safety_received'),
+                      ('maint', 'maint_received'),
+                      ('lug_boot', 'lug_boot_received')])
 
 # binary symmetric channel noise #
-# n = 4
-# cpd = []
-# for x1 in range(n):
-#     for x2 in range(n):
-#         if x1 == x2:
-#             cpd.append(1)
-#         else:
-#             cpd.append(0)
+n = 4
+cpd1 = []
+for x1 in range(n):
+    for x2 in range(n):
+        if x1 == x2:
+            cpd1.append(1)
+        else:
+            cpd1.append(0)
 
-# Add Gaussian noise around each state #
-std = 1
-cpd1 = [mlab.normpdf(0, 0, std), mlab.normpdf(0, 1, std), mlab.normpdf(0, 2, std), mlab.normpdf(0, 3, std),
-        mlab.normpdf(1, 0, std), mlab.normpdf(1, 1, std), mlab.normpdf(1, 2, std), mlab.normpdf(1, 3, std),
-        mlab.normpdf(2, 0, std), mlab.normpdf(2, 1, std), mlab.normpdf(2, 2, std), mlab.normpdf(2, 3, std),
-        mlab.normpdf(3, 0, std), mlab.normpdf(3, 1, std), mlab.normpdf(3, 2, std), mlab.normpdf(3, 3, std)]
+n = 3
+cpd2 = []
+for x1 in range(n):
+    for x2 in range(n):
+        if x1 == x2:
+            cpd2.append(1)
+        else:
+            cpd2.append(0)
 
-cpd2 = [mlab.normpdf(0, 0, std), mlab.normpdf(0, 1, std), mlab.normpdf(0, 2, std),
-        mlab.normpdf(1, 0, std), mlab.normpdf(1, 1, std), mlab.normpdf(1, 2, std),
-        mlab.normpdf(2, 0, std), mlab.normpdf(2, 1, std), mlab.normpdf(2, 2, std)]
+# std = 0.25
+# cpd1 = [mlab.normpdf(0, 0, std), mlab.normpdf(0, 1, std), mlab.normpdf(0, 2, std), mlab.normpdf(0, 3, std),
+#         mlab.normpdf(1, 0, std), mlab.normpdf(1, 1, std), mlab.normpdf(1, 2, std), mlab.normpdf(1, 3, std),
+#         mlab.normpdf(2, 0, std), mlab.normpdf(2, 1, std), mlab.normpdf(2, 2, std), mlab.normpdf(2, 3, std),
+#         mlab.normpdf(3, 0, std), mlab.normpdf(3, 1, std), mlab.normpdf(3, 2, std), mlab.normpdf(3, 3, std)]
+
+# cpd2 = [mlab.normpdf(0, 0, std), mlab.normpdf(0, 1, std), mlab.normpdf(0, 2, std),
+#         mlab.normpdf(1, 0, std), mlab.normpdf(1, 1, std), mlab.normpdf(1, 2, std),
+#         mlab.normpdf(2, 0, std), mlab.normpdf(2, 1, std), mlab.normpdf(2, 2, std)]
 
 # p(doors_received|doors) - doors was original information, but we received a noisy version of it! #
 # not necessary to normalise cpd for Markov network #
-factor1 = DiscreteFactor(['doors', 'doors_received'], cardinality=[4, 4], values=cpd1)
-factor2 = DiscreteFactor(['persons', 'persons_received'], cardinality=[3, 3], values=cpd2)
+factor1 = DiscreteFactor(['buying', 'buying_received'], cardinality=[4, 4], values=cpd1)
+factor2 = DiscreteFactor(['maint', 'maint_received'], cardinality=[4, 4], values=cpd1)
+factor3 = DiscreteFactor(['doors', 'doors_received'], cardinality=[4, 4], values=cpd1)
+factor4 = DiscreteFactor(['persons', 'persons_received'], cardinality=[3, 3], values=cpd2)
+factor5 = DiscreteFactor(['safety', 'safety_received'], cardinality=[3, 3], values=cpd2)
+factor6 = DiscreteFactor(['lug_boot', 'lug_boot_received'], cardinality=[3, 3], values=cpd2)
 
-# print(factor1)
-# factor1.reduce([('doors_received', 0)])
-# # # factor.normalize()
-# print(factor1)
+# for any given x (where x can also be continuous) this reduces to a table with k scaled probabilities #
+# print(factor3)
+# factor3.reduce([('doors_received', 1)])
+# # factor.normalize()
+# print(factor3)
 
 # add the factor to the network #
 model.add_factors(factor1)
 model.add_factors(factor2)
+model.add_factors(factor3)
+model.add_factors(factor4)
+model.add_factors(factor5)
+model.add_factors(factor6)
 
 # print(model.nodes())
 # print(model.edges())
@@ -220,4 +244,66 @@ model.add_factors(factor2)
 inference = BeliefPropagation(model)
 
 print("Class variable prior:\n{}\n".format(inference.query(variables=['class'])['class']))
-print("Class variable posterior after noisy observation:\n{}\n".format(inference.query(variables=['class'], evidence={'doors_received': 0, 'persons_received': 2})['class']))
+print("Class variable posterior after noisy observation:\n{}\n".format(inference.query(variables=['class'], evidence={'doors_received': 0})['class']))
+
+#####################
+# Predict test data #
+#####################
+
+predict_data = df_test.copy()
+predict_data = predict_data.rename(columns={'doors': 'doors_received',
+                                            'maint': 'maint_received',
+                                            'safety': 'safety_received',
+                                            'lug_boot': 'lug_boot_received',
+                                            'persons': 'persons_received',
+                                            'buying': 'buying_received'})
+
+predict_data.drop(['class'], axis=1, inplace=True)
+# y_pred = model.predict(predict_data)
+
+pred_values = []
+for index, data_point in predict_data.iterrows():
+    prob_dist = inference.query(variables=['class'], evidence=data_point.to_dict())['class'].values
+    pred_values.append(prob_dist)
+
+#######################################
+# Model (with uncertainty) evaluation #
+#######################################
+
+print("Classification accuracy: {0:.3f}%".format(100 * accuracy_score(df_test['class'].values, [np.argmax(i) for i in pred_values])))
+print("F1 score: {0:.3f}\n".format(f1_score(df_test['class'].values, [np.argmax(i) for i in pred_values], average='weighted')))
+print("Confusion matrix:\n{}\n".format(confusion_matrix(df_test['class'].values, [np.argmax(i) for i in pred_values])))
+
+y_test = label_binarize(df_test['class'].values, classes=[0, 1, 2, 3])
+pred_values = np.array(pred_values)
+
+fpr = dict()
+tpr = dict()
+roc_auc = dict()
+n_classes = 4
+for i in range(n_classes):
+    fpr[i], tpr[i], _ = roc_curve(y_test[:, i], pred_values[:, i])
+    roc_auc[i] = auc(fpr[i], tpr[i])
+
+# Compute micro-average (flattened) ROC curve and ROC area #
+fpr["micro"], tpr["micro"], _ = roc_curve(y_test.ravel(), pred_values.ravel())
+roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
+
+plt.figure(1)
+plt.plot(fpr["micro"], tpr["micro"], label="micro-average ROC curve (area = {0:0.3f})".format(roc_auc["micro"]))
+
+# for i in range(n_classes):
+#     plt.plot(fpr[i], tpr[i], label="ROC curve of class {0} (area = {1:0.2f})".format(i, roc_auc[i]))
+
+plt.plot([0, 1], [0, 1], 'k--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC curve')
+plt.legend(loc="lower right")
+plt.show()
+
+# A continuous Gaussian pdf can now describe the correlation with our input variables #
+# when we have a hybrid factor involving both discrete and continuous random variables #
+# and we observe all the continuous ones we are left with a factor consisting purely of discrete probabilities #
