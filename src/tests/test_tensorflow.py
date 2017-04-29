@@ -13,7 +13,7 @@ n_out = 2
 X = tf.placeholder(tf.float32, [None, n_dims])
 Y = tf.placeholder(tf.float32, [None, n_out])
 W = tf.Variable(tf.zeros([n_dims, n_out]))
-b = tf.Variable(tf.zeros([n_out]))
+b = tf.Variable(tf.zeros([1, n_out]))
 
 init = tf.initialize_all_variables()
 
