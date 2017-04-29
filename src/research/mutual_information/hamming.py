@@ -106,14 +106,14 @@ if __name__ == '__main__':
     """
     np.set_printoptions(linewidth=np.nan, suppress=True)
     pd.set_option('display.max_rows', 10000)
-    df = pd.DataFrame(gen_data(10000, noisy=False, std=0.001), columns=['b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b7'])
+    df = pd.DataFrame(gen_data(5000, noisy=True, std=0.01), columns=['b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b7'])
     A = df.as_matrix()
 
     ###############
     # pairwise MI #
     ###############
 
-    bins = 2
+    bins = 10
     n = 7
     matMI = np.zeros((7, 7))
 

@@ -2,12 +2,13 @@ import theano
 import numpy as np
 import theano.tensor as T
 
+# test LR for multivariate output #
 train_x = np.asarray([[0.0, 0.1, 0.2], [1.0, 1.1, 1.3], [2.0, 2.1, 1.9], [3.0, 3.1, 3.11], [4.0, 4.1, 13.9]])
 train_y = np.asarray([[1.2, 2.2], [5.3, 5.1], [2.9, 2.1], [1.9, 9.1], [4.2, 3.2]])
 
 learning_rate = 0.001
 n_dims = train_x.shape[1]
-n_steps = 10
+n_steps = 100
 n_out = 2
 
 x = T.matrix(name='x')
